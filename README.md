@@ -15,7 +15,7 @@
 
 # swift-idna
 
-A dependncy-free, multiplatform implementation of Punycode and IDNA (Internationalized Domain Names in Application) as per [RFC 3492](https://datatracker.ietf.org/doc/html/rfc3492) and friends.
+A dependncy-free, multiplatform implementation of Punycode and IDNA (Internationalized Domain Names in Applications) as per [RFC 5891](https://datatracker.ietf.org/doc/html/rfc5891) and friends.
 
 ## Usage
 
@@ -36,11 +36,14 @@ print(idna.toUnicode(domainName: "xn--xkrr14bows.xn--fiqs8s"))
 ```
 
 Domain names are inherently case-insensitive, and they will be lowercased if they need to go through any conversions.
+
 If they are short-circuted, they won't necesssarily be lowercased.
+
 If you need consistent lowercased domain, either use Swift's `String.lowercased()` after a `toASCII(domainName:)` call, or implement your ASCII-specific own lowercasing function.
 
 ## Implementation
 This package uses Unicode 17's [IDNA test v2 suite](https://www.unicode.org/Public/idna/16.0.0/IdnaTestV2.txt) with ~6400 test cases to ensure full compatibility.
+
 Even runs each test case extensively so each test case might even result in 2-3-4-5 test runs.
 
 The C code is all automatically generated using the 2 scripts in `utils/`:
