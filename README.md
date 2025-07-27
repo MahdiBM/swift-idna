@@ -1,7 +1,7 @@
 <p>
-    <a href="https://github.com/MahdiBM/swift-idna/actions/workflows/unit-tests.yml">
+    <a href="https://github.com/MahdiBM/swift-idna/actions/workflows/tests.yml">
         <img
-            src="https://img.shields.io/github/actions/workflow/status/MahdiBM/swift-idna/unit-tests.yml?event=push&style=plastic&logo=github&label=unit-tests&logoColor=%23ccc"
+            src="https://img.shields.io/github/actions/workflow/status/MahdiBM/swift-idna/tests.yml?event=push&style=plastic&logo=github&label=tests&logoColor=%23ccc"
             alt="Unit Tests CI"
         >
     </a>
@@ -40,8 +40,12 @@ If they are short-circuted, they won't necesssarily be lowercased.
 If you need consistent lowercased domain, either use Swift's `String.lowercased()` after a `toASCII(domainName:)` call, or implement your ASCII-specific own lowercasing function.
 
 ## Implementation
-This package uses Unicode [IDNA test v2 suite](https://www.unicode.org/Public/idna/16.0.0/IdnaTestV2.txt) with ~6400 test cases to ensure full compatibility.
+This package uses Unicode 17's [IDNA test v2 suite](https://www.unicode.org/Public/idna/16.0.0/IdnaTestV2.txt) with ~6400 test cases to ensure full compatibility.
 Even runs each test case extensively so each test case might even result in 2-3-4-5 test runs.
+
+The C code is all automatically generated using the 2 scripts in `utils/`:
+* `IDNAMappingTableGenerator.swift` generates the [IDNA mapping lookup table](https://www.unicode.org/Public/idna/17.0.0/IdnaMappingTable.txt).
+* `IDNATestV2Generator.swift` generates the [IDNA test v2 suite](https://www.unicode.org/Public/idna/17.0.0/IdnaTestV2.txt) cases and is used in tests to ensure full compatibility.
 
 #### Current supported [IDNA flags](https://www.unicode.org/reports/tr46/#Processing):
 - [x] checkHyphens
@@ -60,7 +64,7 @@ To use the `swift-idna` library in a SwiftPM project,
 add the following line to the dependencies in your `Package.swift` file:
 
 ```swift
-.package(url: "https://github.com/mahdibm/swift-idna", branch: "main"),
+.package(url: "https://github.com/mahdibm/swift-idna.git", branch: "main"),
 ```
 
 Include `SwiftIDNA` as a dependency for your targets:
