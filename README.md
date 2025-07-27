@@ -39,7 +39,7 @@ Domain names are inherently case-insensitive, and they will be lowercased if the
 
 If they are short-circuted, they won't necesssarily be lowercased.
 
-If you need consistent lowercased domain, either use Swift's `String.lowercased()` after a `toASCII(domainName:)` call, or implement your ASCII-specific own lowercasing function.
+If you need consistent lowercased domain names, either use Swift's `String.lowercased()` after a `toASCII(domainName:)` call, or implement your own [ASCII-specific lowercasing function](https://github.com/search?q=repo:MahdiBM/swift-dns+ASCIIToLowercase&type=code).
 
 ## Implementation
 This package uses Unicode 17's [IDNA test v2 suite](https://www.unicode.org/Public/idna/16.0.0/IdnaTestV2.txt) with ~6400 test cases to ensure full compatibility.
