@@ -1,0 +1,9 @@
+{
+  "swift.backgroundCompilation": true,
+  "swift.debugger.debugAdapter": "CodeLLDB",
+  "swift.additionalTestArguments": ["--disable-xctest"],
+  "swift.buildArguments": ["--disable-xctest"],
+  "swift.recordTestDuration": false,
+  "git.ignoreLimitWarning": true,
+  "cSpell.words": ["Keepalive"]
+}
