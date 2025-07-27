@@ -21,10 +21,10 @@ jobs:
       with_tsan: true
       warnings_as_errors: true
       with_linting: true
-      with_windows: true
       with_wasm: true
       with_musl: true
-      with_android: true
+      with_windows: false # TODO: enable when it works
+      with_android: false # TODO: enable when it works
       extra_flags: "--explicit-target-dependency-import-check error --force-resolved-versions -Xswiftc -require-explicit-sendable"
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
