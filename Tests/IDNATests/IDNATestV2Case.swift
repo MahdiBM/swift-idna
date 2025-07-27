@@ -1,4 +1,4 @@
-import CSwiftDNSIDNATesting
+import CSwiftIDNATesting
 import SwiftIDNA
 
 /// Represents a single test case from the IDNA Test V2 specification:

@@ -1,5 +1,5 @@
 <p>
-    <a href="https://github.com/MahdiBM/swift-dns/actions/workflows/unit-tests.yml">
+    <a href="https://github.com/MahdiBM/swift-idna/actions/workflows/unit-tests.yml">
         <img
             src="https://img.shields.io/github/actions/workflow/status/MahdiBM/swift-idna/unit-tests.yml?event=push&style=plastic&logo=github&label=unit-tests&logoColor=%23ccc"
             alt="Unit Tests CI"
@@ -35,12 +35,12 @@ print(idna.toUnicode(domainName: "xn--xkrr14bows.xn--fiqs8s"))
 /// prints "新华网.中国"
 ```
 
-Domain names are inherently case-insensitive, and they will be lowercased if they need to go through any conversions.   
-If they are short-circuted, they won't necesssarily be lowercased.   
+Domain names are inherently case-insensitive, and they will be lowercased if they need to go through any conversions.
+If they are short-circuted, they won't necesssarily be lowercased.
 If you need consistent lowercased domain, either use Swift's `String.lowercased()` after a `toASCII(domainName:)` call, or implement your ASCII-specific own lowercasing function.
 
 ## Implementation
-This package uses Unicode [IDNA test v2 suite](https://www.unicode.org/Public/idna/16.0.0/IdnaTestV2.txt) with ~6400 test cases to ensure full compatibility.   
+This package uses Unicode [IDNA test v2 suite](https://www.unicode.org/Public/idna/16.0.0/IdnaTestV2.txt) with ~6400 test cases to ensure full compatibility.
 Even runs each test case extensively so each test case might even result in 2-3-4-5 test runs.
 
 #### Current supported [IDNA flags](https://www.unicode.org/reports/tr46/#Processing):
@@ -56,7 +56,7 @@ Even runs each test case extensively so each test case might even result in 2-3-
 
 ## How To Add swift-idna To Your Project
 
-To use the `swift-idna` library in a SwiftPM project, 
+To use the `swift-idna` library in a SwiftPM project,
 add the following line to the dependencies in your `Package.swift` file:
 
 ```swift

@@ -125,6 +125,14 @@ public struct IDNA: Sendable {
 
     /// `ToASCII` IDNA implementation.
     /// https://www.unicode.org/reports/tr46/#ToASCII
+    public func toASCII(domainName: String) throws(MappingErrors) -> String {
+        var domainName = domainName
+        try self.toASCII(domainName: &domainName)
+        return domainName
+    }
+
+    /// `ToASCII` IDNA implementation.
+    /// https://www.unicode.org/reports/tr46/#ToASCII
     public func toASCII(domainName: inout String) throws(MappingErrors) {
         switch performASCIICheck(domainName: domainName) {
         case .containsOnlyIDNANoOpASCII:
@@ -208,6 +216,14 @@ public struct IDNA: Sendable {
         }
 
         domainName = labels.joined(separator: ".")
+    }
+
+    /// `ToUnicode` IDNA implementation.
+    /// https://www.unicode.org/reports/tr46/#ToUnicode
+    public func toUnicode(domainName: String) throws(MappingErrors) -> String {
+        var domainName = domainName
+        try self.toUnicode(domainName: &domainName)
+        return domainName
     }
 
     /// `ToUnicode` IDNA implementation.

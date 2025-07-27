@@ -1,4 +1,4 @@
-import CSwiftDNSIDNA
+import CSwiftIDNA
 
 package enum IDNAMapping: Equatable {
     package enum IDNA2008Status {

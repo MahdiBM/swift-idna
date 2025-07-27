@@ -11,20 +11,20 @@ let package = Package(
         .target(
             name: "SwiftIDNA",
             dependencies: [
-                "CSwiftDNSIDNA"
+                "CSwiftIDNA"
             ],
             swiftSettings: settings
         ),
-        .target(name: "CSwiftDNSIDNA"),
+        .target(name: "CSwiftIDNA"),
         .target(
-            name: "CSwiftDNSIDNATesting",
+            name: "CSwiftIDNATesting",
             cSettings: cSettingsIgnoringInvalidSourceCharacters
         ),
         .testTarget(
             name: "IDNATests",
             dependencies: [
                 "SwiftIDNA",
-                "CSwiftDNSIDNATesting",
+                "CSwiftIDNATesting",
             ],
             swiftSettings: settings
         ),
