@@ -30,7 +30,7 @@ let idna = IDNA(configuration: .mostStrict)
 print(idna.toASCII(domainName: "新华网.中国"))
 /// prints "xn--xkrr14bows.xn--fiqs8s"
 
-/// Turn back a IDNA-compatible domain name to its Unicode representation using toUnicode:
+/// Turn back an IDNA-compatible domain name to its Unicode representation using toUnicode:
 print(idna.toUnicode(domainName: "xn--xkrr14bows.xn--fiqs8s"))
 /// prints "新华网.中国"
 ```
@@ -39,7 +39,7 @@ Domain names are inherently case-insensitive, and they will be lowercased if the
 
 If they are short-circuted, they won't necesssarily be lowercased.
 
-If you need consistent lowercased domain names, either use Swift's `String.lowercased()` after a `toASCII(domainName:)` call, or implement your own [ASCII-specific lowercasing function](https://github.com/search?q=repo:MahdiBM/swift-dns+ASCIIToLowercase&type=code).
+If you need consistent lowercased domain names, either use Swift's `String.lowercased()` after a function call, or implement your own Unicode or [ASCII-specific lowercasing function](https://github.com/search?q=repo:MahdiBM/swift-dns+ASCIIToLowercase&type=code).
 
 ## Implementation
 This package uses Unicode 17's [IDNA test v2 suite](https://www.unicode.org/Public/idna/16.0.0/IdnaTestV2.txt) with ~6400 test cases to ensure full compatibility.
