@@ -11,16 +11,16 @@
             alt="Benchmarks CI"
         >
     </a>
-    <a href="https://codecov.io/gh/swift-dns/swift-idna"> 
-        <img 
+    <a href="https://codecov.io/gh/swift-dns/swift-idna">
+        <img
             src="https://codecov.io/gh/swift-dns/swift-idna/graph/badge.svg?token=KW7Y46RYYD"
             alt="Codecov Tests Code Coverage"
-        > 
+        >
     </a>
     <a href="https://swift.org">
         <img
             src="https://design.vapor.codes/images/swift623up.svg"
-            alt="Swift 6.2.3+"
+            alt="Swift 6.3+"
         >
     </a>
 </p>
@@ -61,8 +61,8 @@ This package uses Unicode 17's [IDNA test v2 suite](https://www.unicode.org/Publ
 
 Runs each test case extensively so each test case might even result in 2-3-4-5 test runs.
 
-This testing facility enables the implementation to be highly optimized.   
-For example this packages uses `unchecked` element accessors everywhere, which do not do bounds checks.   
+This testing facility enables the implementation to be highly optimized.
+For example this packages uses `unchecked` element accessors everywhere, which do not do bounds checks.
 This is only made possible thanks to the massive test suite: We expect the tests to reveal any implementation issues and incorrect element accesses.
 
 `swift-idna` implements short-circuits in both `toASCII` and `toUnicode` functions to avoid IDNA conversions when possible.
@@ -93,9 +93,9 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 ### Summary
 
 > [!NOTE]
-> **swift-idna** wins the **Malloc count** benchmarks by far.  
-> **ICU** wins the **Non-ASCII Domain Names** CPU time, by a bit.  
-> **swift-idna** wins **ASCII Domain Names** CPU time by far.  
+> **swift-idna** wins the **Malloc count** benchmarks by far.
+> **ICU** wins the **Non-ASCII Domain Names** CPU time, by a bit.
+> **swift-idna** wins **ASCII Domain Names** CPU time by far.
 
 ### Non-ASCII Domain Names
 
@@ -166,5 +166,5 @@ Finally, add `import SwiftIDNA` to your source code.
 
 ## Acknowledgments
 
-This package was initially a part of [swift-dns](https://github.com/MahdiBM/swift-dns) which I decided to decouple from that project.   
+This package was initially a part of [swift-dns](https://github.com/MahdiBM/swift-dns) which I decided to decouple from that project.
 Currently it's used in [swift-endpoint](https://github.com/MahdiBM/swift-endpoint), which [swift-dns](https://github.com/MahdiBM/swift-dns) relies on.

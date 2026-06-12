@@ -3,9 +3,6 @@ extension IDNA {
     /// `ToASCII` IDNA implementation.
     /// https://www.unicode.org/reports/tr46/#ToASCII
     @inlinable
-    #if swift(<6.3)
-    @_lifetime(copy span)
-    #endif
     func _toASCII(
         _uncheckedAssumingValidUTF8 span: Span<UInt8>
     ) throws(CollectedMappingErrors) -> ConversionResult {
@@ -128,9 +125,6 @@ extension IDNA {
     }
 
     @inlinable
-    #if swift(<6.3)
-    @_lifetime(&errors)
-    #endif
     func appendLabel(
         domainNameSpan bytesSpan: Span<UInt8>,
         startIndex: Int,
@@ -206,9 +200,6 @@ extension IDNA {
     /// `ToUnicode` IDNA implementation.
     /// https://www.unicode.org/reports/tr46/#ToUnicode
     @inlinable
-    #if swift(<6.3)
-    @_lifetime(copy span)
-    #endif
     func _toUnicode(
         _uncheckedAssumingValidUTF8 span: Span<UInt8>
     ) throws(CollectedMappingErrors) -> ConversionResult {
@@ -247,9 +238,6 @@ extension IDNA {
     /// Main `Processing` IDNA implementation.
     /// https://www.unicode.org/reports/tr46/#Processing
     @inlinable
-    #if swift(<6.3)
-    @_lifetime(&errors)
-    #endif
     func mainProcessing(
         _uncheckedAssumingValidUTF8 span: Span<UInt8>,
         reuseBuffer newBytes: inout TinyBuffer,
@@ -388,9 +376,6 @@ extension IDNA {
     /// https://www.unicode.org/reports/tr46/#ProcessingStepConvertValidate
     /// Returns true if succeeded.
     @inlinable
-    #if swift(<6.3)
-    @_lifetime(copy span)
-    #endif
     func convertAndValidateLabel(
         _ span: Span<UInt8>,
         scalarsIndexToUTF8IndexForReuse: inout LazyRigidArray<Int>,
@@ -476,9 +461,6 @@ extension IDNA {
     }
 
     @inlinable
-    #if swift(<6.3)
-    @_lifetime(&errors)
-    #endif
     func checkInvalidPunycode(span: Span<UInt8>, errors: inout MappingErrors) {
         if configuration.ignoreInvalidPunycode {
             return
@@ -503,9 +485,6 @@ extension IDNA {
 
     /// https://www.unicode.org/reports/tr46/#Validity_Criteria
     @inlinable
-    #if swift(<6.3)
-    @_lifetime(&errors)
-    #endif
     func verifyValidLabel(
         _uncheckedAssumingValidUTF8 span: Span<UInt8>,
         errors: inout MappingErrors

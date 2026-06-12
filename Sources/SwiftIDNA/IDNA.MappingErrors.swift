@@ -29,13 +29,10 @@ extension IDNA {
         @_lifetime(copy domainNameSpan)
         init(domainNameSpan: Span<UInt8>) {
             self.domainNameSpan = domainNameSpan
-            self.errors = UniqueArray<MappingError>(capacity: 0)
+            self.errors = UniqueArray<MappingError>(minimumCapacity: 0)
         }
 
         @inlinable
-        #if swift(<6.3)
-        @_lifetime(&self)
-        #endif
         mutating func append(_ error: MappingError) {
             self.errors.append(error)
         }

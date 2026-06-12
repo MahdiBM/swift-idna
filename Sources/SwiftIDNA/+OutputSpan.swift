@@ -2,9 +2,6 @@
 extension OutputSpan<UInt8> {
     /// Appends the given span to the output span.
     @inlinable
-    #if swift(<6.3)
-    @_lifetime(&self)
-    #endif
     mutating func swift_idna_append(copying span: Span<UInt8>) {
         let appendCount = span.count
         if appendCount == 0 { return }
@@ -25,9 +22,6 @@ extension OutputSpan<UInt8> {
 extension OutputSpan where Element: BinaryInteger {
     /// Inserts the given element at the given index into the output span.
     @inlinable
-    #if swift(<6.3)
-    @_lifetime(&self)
-    #endif
     mutating func swift_idna_insert(_ element: Element, at index: Int) {
         let usedCapacity = self.count
         self.withUnsafeMutableBufferPointer { buffer, initializedCount in

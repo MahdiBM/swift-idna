@@ -8,9 +8,6 @@ struct DecodedUnicodeScalars: ~Copyable {
     var scalars: RigidArray<Unicode.Scalar>
 
     @inlinable
-    #if swift(<6.3)
-    @_lifetime(copy utf8Bytes)
-    #endif
     init(utf8Bytes: Span<UInt8>) {
         self.scalars = RigidArray<Unicode.Scalar>(capacity: utf8Bytes.count)
         self.decode(utf8Bytes: utf8Bytes)
@@ -18,9 +15,6 @@ struct DecodedUnicodeScalars: ~Copyable {
 
     /// Decodes the given UTF-8 bytes into Unicode scalars.
     @usableFromInline
-    #if swift(<6.3)
-    @_lifetime(copy utf8Bytes)
-    #endif
     mutating func decode(utf8Bytes: Span<UInt8>) {
         self.scalars.edit { output in
             var unicodeScalarsIterator = UnicodeScalarIterator()
@@ -69,9 +63,6 @@ extension DecodedUnicodeScalars {
         /// As an optimization, this function assumes the new range is after the last range it was set to.
         /// As always, tests will catch the issue if it's not the case.
         @inlinable
-        #if swift(<6.3)
-        @_lifetime(&self)
-        #endif
         mutating func set(utf8OffsetRange range: Range<Int>) {
             let scalarsCount = self.scalars.count
             var byteOffset = self.endIndexByteOffset

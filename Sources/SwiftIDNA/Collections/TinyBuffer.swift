@@ -23,7 +23,7 @@ enum TinyBuffer: ~Copyable {
     @inlinable
     init(requiredCapacity: Int) {
         if requiredCapacity > InlineElements.maximumCapacity {
-            self = .heap(UniqueArray<UInt8>(capacity: requiredCapacity))
+            self = .heap(UniqueArray<UInt8>(minimumCapacity: requiredCapacity))
         } else {
             self = .inline(InlineElements())
         }
@@ -38,7 +38,7 @@ enum TinyBuffer: ~Copyable {
         /// If the preferred capacity is less than 23, we can use the inline elements anyway to begin
         /// with, because even if we need to allocate a new buffer, we're only allocating once anyway.
         if preferredCapacity > TINY_ARRAY__UNIQUE_ARRAY_ALLOCATION_THRESHOLD {
-            self = .heap(UniqueArray<UInt8>(capacity: preferredCapacity))
+            self = .heap(UniqueArray<UInt8>(minimumCapacity: preferredCapacity))
         } else {
             self = .inline(InlineElements())
         }
@@ -192,7 +192,7 @@ enum TinyBuffer: ~Copyable {
                 self = .inline(elements)
             }
         case .heap(var array):
-            array.append(count: extraCapacity) { output in
+            array.append(addingCount: extraCapacity) { output in
                 block(&output)
             }
             self = .heap(array)

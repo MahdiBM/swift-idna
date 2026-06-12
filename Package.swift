@@ -1,4 +1,4 @@
-//swift-tools-version: 6.2.1
+//swift-tools-version: 6.3
 
 import PackageDescription
 
@@ -8,7 +8,7 @@ let package = Package(
         .library(name: "SwiftIDNA", targets: ["SwiftIDNA"])
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-collections.git", from: "1.3.0")
+        .package(url: "https://github.com/apple/swift-collections.git", from: "1.6.0")
     ],
     targets: [
         .target(
