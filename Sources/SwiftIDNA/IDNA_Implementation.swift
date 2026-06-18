@@ -19,100 +19,108 @@ extension IDNA {
         var errors = MappingErrors(domainNameSpan: span)
 
         // 1.
-        var convertedBytes = TinyBuffer()
-        let processedBytes = self.mainProcessing(
-            _uncheckedAssumingValidUTF8: span,
-            reuseBuffer: &convertedBytes,
-            errors: &errors
-        )
+        let result = TinyBuffer.withInlineAllocation { convertedBytes -> ConversionResult in
+            TinyBuffer.withInlineAllocation { processedBytes -> ConversionResult in
 
-        // 2., 3.
-        var outputBufferForReuse = LazyTinyBuffer(
-            capacity: convertedBytes.count
-        )
-
-        convertedBytes.removeAll(keepingCapacity: true)
-
-        processedBytes.withSpan { processedBytesSpan in
-            var baseDecodedUnicodeScalars = DecodedUnicodeScalars(
-                utf8Bytes: processedBytesSpan
-            )
-            var decodedUnicodeScalars = DecodedUnicodeScalars.Subsequence(
-                base: &baseDecodedUnicodeScalars
-            )
-
-            var startIndex = 0
-
-            for idx in processedBytesSpan.indices {
-                /// If this is not a label separator, then continue
-                var endIndex = idx
-                let countBehindX = idx
-                switch countBehindX {
-                case 0, 1, 2:
-                    guard processedBytesSpan[unchecked: idx] == .asciiDot else {
-                        continue
-                    }
-                case 3...:
-                    let third = processedBytesSpan[unchecked: idx]
-                    let second = processedBytesSpan[unchecked: idx &- 1]
-                    let first = processedBytesSpan[unchecked: idx &- 2]
-                    if !Span<UInt8>.isIDNALabelSeparator(first, second, third),
-                        third != .asciiDot
-                    {
-                        continue
-                    }
-                    if third != .asciiDot {
-                        /// Set last index to bytes before e.g. `U+3002 ( 。 ) IDEOGRAPHIC FULL STOP`
-                        /// which is 3 bytes, not 1, like `U+002E ( . ) FULL STOP` (asciiDot) is.
-                        endIndex = idx &- 2
-                    }
-                default:
-                    fatalError("Invalid count behind X: \(countBehindX)")
-                }
-
-                appendLabel(
-                    domainNameSpan: processedBytesSpan,
-                    startIndex: startIndex,
-                    endIndex: endIndex,
-                    appendDot: true,
-                    convertedBytes: &convertedBytes,
-                    outputBufferForReuse: &outputBufferForReuse,
-                    decodedUnicodeScalars: &decodedUnicodeScalars,
+                self.mainProcessing(
+                    _uncheckedAssumingValidUTF8: span,
+                    reuseBuffer: &convertedBytes,
+                    output: &processedBytes,
                     errors: &errors
                 )
 
-                startIndex = idx &+ 1
-            }
+                // 2., 3.
+                let outputReuseCapacityHint = convertedBytes.count
+                convertedBytes.removeAll(keepingCapacity: true)
 
-            /// Last label
-            appendLabel(
-                domainNameSpan: processedBytesSpan,
-                startIndex: startIndex,
-                endIndex: processedBytesSpan.count,
-                appendDot: false,
-                convertedBytes: &convertedBytes,
-                outputBufferForReuse: &outputBufferForReuse,
-                decodedUnicodeScalars: &decodedUnicodeScalars,
-                errors: &errors
-            )
+                return TinyBuffer.withInlineAllocation(preferredCapacity: outputReuseCapacityHint) {
+                    (outputBufferForReuse) -> ConversionResult in
 
-            if configuration.verifyDNSLength {
-                if convertedBytes.count >= 254 {
-                    errors.append(
-                        .trueVerifyDNSLengthArgumentRequiresDomainNameToBe254BytesOrLess(
-                            length: convertedBytes.count,
-                            labels: [UInt8](copying: convertedBytes)
+                    processedBytes.withSpan { processedBytesSpan in
+                        var baseDecodedUnicodeScalars = DecodedUnicodeScalars(
+                            utf8Bytes: processedBytesSpan
                         )
-                    )
-                }
-                if convertedBytes.isEmpty {
-                    /// FIXME: this line is never triggered in tests. Why?
-                    /// It doesn't affect the conversion result at all, but I should still investigate.
-                    errors.append(
-                        .trueVerifyDNSLengthArgumentDisallowsEmptyDomainName(
-                            labels: [UInt8](copying: convertedBytes)
+                        var decodedUnicodeScalars = DecodedUnicodeScalars.Subsequence(
+                            base: &baseDecodedUnicodeScalars
                         )
-                    )
+
+                        var startIndex = 0
+
+                        for idx in processedBytesSpan.indices {
+                            /// If this is not a label separator, then continue
+                            var endIndex = idx
+                            let countBehindX = idx
+                            switch countBehindX {
+                            case 0, 1, 2:
+                                guard processedBytesSpan[unchecked: idx] == .asciiDot else {
+                                    continue
+                                }
+                            case 3...:
+                                let third = processedBytesSpan[unchecked: idx]
+                                let second = processedBytesSpan[unchecked: idx &- 1]
+                                let first = processedBytesSpan[unchecked: idx &- 2]
+                                if !Span<UInt8>.isIDNALabelSeparator(first, second, third),
+                                    third != .asciiDot
+                                {
+                                    continue
+                                }
+                                if third != .asciiDot {
+                                    /// Set last index to bytes before e.g. `U+3002 ( 。 ) IDEOGRAPHIC FULL STOP`
+                                    /// which is 3 bytes, not 1, like `U+002E ( . ) FULL STOP` (asciiDot) is.
+                                    endIndex = idx &- 2
+                                }
+                            default:
+                                fatalError("Invalid count behind X: \(countBehindX)")
+                            }
+
+                            appendLabel(
+                                domainNameSpan: processedBytesSpan,
+                                startIndex: startIndex,
+                                endIndex: endIndex,
+                                appendDot: true,
+                                convertedBytes: &convertedBytes,
+                                outputBufferForReuse: &outputBufferForReuse,
+                                decodedUnicodeScalars: &decodedUnicodeScalars,
+                                errors: &errors
+                            )
+
+                            startIndex = idx &+ 1
+                        }
+
+                        /// Last label
+                        appendLabel(
+                            domainNameSpan: processedBytesSpan,
+                            startIndex: startIndex,
+                            endIndex: processedBytesSpan.count,
+                            appendDot: false,
+                            convertedBytes: &convertedBytes,
+                            outputBufferForReuse: &outputBufferForReuse,
+                            decodedUnicodeScalars: &decodedUnicodeScalars,
+                            errors: &errors
+                        )
+
+                        if configuration.verifyDNSLength {
+                            if convertedBytes.count >= 254 {
+                                errors.append(
+                                    .trueVerifyDNSLengthArgumentRequiresDomainNameToBe254BytesOrLess(
+                                        length: convertedBytes.count,
+                                        labels: [UInt8](copying: convertedBytes)
+                                    )
+                                )
+                            }
+                            if convertedBytes.isEmpty {
+                                /// FIXME: this line is never triggered in tests. Why?
+                                /// It doesn't affect the conversion result at all, but I should still investigate.
+                                errors.append(
+                                    .trueVerifyDNSLengthArgumentDisallowsEmptyDomainName(
+                                        labels: [UInt8](copying: convertedBytes)
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    return convertedBytes.takeAsConversionResult()
                 }
             }
         }
@@ -121,7 +129,7 @@ extension IDNA {
             throw errors
         }
 
-        return ConversionResult(consuming: convertedBytes)
+        return result
     }
 
     @inlinable
@@ -131,7 +139,7 @@ extension IDNA {
         endIndex: Int,
         appendDot: Bool,
         convertedBytes: inout TinyBuffer,
-        outputBufferForReuse: inout LazyTinyBuffer,
+        outputBufferForReuse: inout TinyBuffer,
         decodedUnicodeScalars: inout DecodedUnicodeScalars.Subsequence,
         errors: inout MappingErrors
     ) {
@@ -150,29 +158,25 @@ extension IDNA {
             }
         } else {
             /// TODO: can we pass convertedBytes to Punycode.encode instead of it returning a new array?
-            outputBufferForReuse.withTinyBuffer {
-                (outputBufferForReuse: inout TinyBuffer) -> Void in
+            decodedUnicodeScalars.set(utf8OffsetRange: range)
 
-                decodedUnicodeScalars.set(utf8OffsetRange: range)
+            Punycode.encode(
+                _uncheckedAssumingValidUTF8: labelSpan,
+                outputBufferForReuse: &outputBufferForReuse,
+                decodedUnicodeScalars: decodedUnicodeScalars
+            )
 
-                Punycode.encode(
-                    _uncheckedAssumingValidUTF8: labelSpan,
-                    outputBufferForReuse: &outputBufferForReuse,
-                    decodedUnicodeScalars: decodedUnicodeScalars
-                )
-
-                labelByteLength = 4 &+ outputBufferForReuse.count
-                convertedBytes.append(
-                    exactExtraRequiredCapacity: 4 &+ outputBufferForReuse.count &+ 1
-                ) { output in
-                    output.append(.asciiLowercasedX)
-                    output.append(.asciiLowercasedN)
-                    output.append(.asciiHyphenMinus)
-                    output.append(.asciiHyphenMinus)
-                    outputBufferForReuse.withSpan { output.swift_idna_append(copying: $0) }
-                    if appendDot {
-                        output.append(.asciiDot)
-                    }
+            labelByteLength = 4 &+ outputBufferForReuse.count
+            convertedBytes.append(
+                exactExtraRequiredCapacity: 4 &+ outputBufferForReuse.count &+ 1
+            ) { output in
+                output.append(.asciiLowercasedX)
+                output.append(.asciiLowercasedN)
+                output.append(.asciiHyphenMinus)
+                output.append(.asciiHyphenMinus)
+                outputBufferForReuse.withSpan { output.swift_idna_append(copying: $0) }
+                if appendDot {
+                    output.append(.asciiDot)
                 }
             }
         }
@@ -220,19 +224,26 @@ extension IDNA {
         var errors = MappingErrors(domainNameSpan: span)
 
         // 1.
-        var reuseBuffer = TinyBuffer()
-        let utf8Bytes = self.mainProcessing(
-            _uncheckedAssumingValidUTF8: span,
-            reuseBuffer: &reuseBuffer,
-            errors: &errors
-        )
+        let result = TinyBuffer.withInlineAllocation { reuseBuffer -> ConversionResult in
+            TinyBuffer.withInlineAllocation { utf8Bytes -> ConversionResult in
+
+                self.mainProcessing(
+                    _uncheckedAssumingValidUTF8: span,
+                    reuseBuffer: &reuseBuffer,
+                    output: &utf8Bytes,
+                    errors: &errors
+                )
+
+                return utf8Bytes.takeAsConversionResult()
+            }
+        }
 
         // 2.
         if let errors = errors.collect() {
             throw errors
         }
 
-        return ConversionResult(consuming: utf8Bytes)
+        return result
     }
 
     /// Main `Processing` IDNA implementation.
@@ -241,8 +252,9 @@ extension IDNA {
     func mainProcessing(
         _uncheckedAssumingValidUTF8 span: Span<UInt8>,
         reuseBuffer newBytes: inout TinyBuffer,
+        output newerBytes: inout TinyBuffer,
         errors: inout MappingErrors
-    ) -> TinyBuffer {
+    ) {
         /// 1. Map
         self.mapToIDNAMappings(
             _uncheckedAssumingValidUTF8: span,
@@ -254,7 +266,7 @@ extension IDNA {
         /// Make `newBytes` NFC, if not already NFC
         newBytes._uncheckedAssumingValidUTF8_ensureNFC()
 
-        var newerBytes = TinyBuffer(preferredCapacity: newBytes.count)
+        newerBytes.preferablyReserveCapacity(newBytes.count)
 
         newBytes.withSpan { newBytesSpan in
             let maxRequiredCapacityForAllLabels = self.maxLabelLength(span: newBytesSpan)
@@ -293,8 +305,6 @@ extension IDNA {
                 errors: &errors
             )
         }
-
-        return newerBytes
     }
 
     /// Maps the given span to IDNA mappings.
@@ -318,13 +328,15 @@ extension IDNA {
             }
         }
 
-        /// Use the underlying RigidArray to skip capacity checks because
-        /// we're guaranteed to have enough capacity.
-        var tinyBuffer = TinyBuffer(requiredCapacity: requiredCapacity)
+        /// I'm expecting this to be empty at this point, nothing special.
+        /// Tests will immediately crash if this is not the case.
+        assert(newBytes.isEmpty)
 
         unicodeScalarsIterator = UnicodeScalarIterator()
 
-        tinyBuffer.edit { output in
+        /// Reserve the exact required capacity up front so we can skip further capacity checks
+        /// because we're guaranteed to have enough capacity.
+        newBytes.append(exactExtraRequiredCapacity: requiredCapacity) { output in
             while let (scalar, range) = unicodeScalarsIterator.nextWithRange(in: span) {
                 switch IDNAMapping.for(scalar: scalar) {
                 case .valid(_), .deviation(_), .disallowed:
@@ -337,12 +349,6 @@ extension IDNA {
                 }
             }
         }
-
-        /// I'm expecting this to be empty at this point, nothing special.
-        /// Tests will immediately crash if this is not the case.
-        assert(newBytes.isEmpty)
-
-        newBytes = tinyBuffer
     }
 
     /// Returns the length of the longest label in the given span.

@@ -2,45 +2,64 @@ public import BasicContainers
 
 @inlinable
 package var TINY_ARRAY__UNIQUE_ARRAY_ALLOCATION_THRESHOLD: Int {
-    35
+    36
 }
 
 /// A collection of bytes.
-/// Holds up to the first 23 elements inline, and then allocates a `UniqueArray` for the rest if needed.
+/// Holds up to the first 24 elements in a inline stack allocation, and then allocates a
+/// `UniqueArray` for the rest if needed.
 /// This is useful for skipping allocations if we don't have many bytes to store.
 @available(swiftIDNAApplePlatforms 10.15, *)
 @usableFromInline
-enum TinyBuffer: ~Copyable {
+enum TinyBuffer: ~Copyable, ~Escapable {
     case inline(InlineElements)
     case heap(UniqueArray<UInt8>)
 
+    /// Runs `body` with an empty `TinyBuffer` backed by a inline stack allocation.
     @inlinable
-    init() {
-        self = .inline(InlineElements())
+    @inline(__always)
+    static func withInlineAllocation<R: ~Copyable, Failure: Error>(
+        _ body: (inout TinyBuffer) throws(Failure) -> R
+    ) throws(Failure) -> R {
+        try Self.withInlineAllocation(requiredCapacity: 0, body)
     }
 
-    /// Initializes a `TinyBuffer`, unconditionally reserving the requested capacity.
+    /// Runs `body` with an empty `TinyBuffer`, unconditionally allocating on the heap if the
+    /// requested capacity does not fit inline.
     @inlinable
-    init(requiredCapacity: Int) {
+    @inline(__always)
+    static func withInlineAllocation<R: ~Copyable, Failure: Error>(
+        requiredCapacity: Int,
+        _ body: (inout TinyBuffer) throws(Failure) -> R
+    ) throws(Failure) -> R {
         if requiredCapacity > InlineElements.maximumCapacity {
-            self = .heap(UniqueArray<UInt8>(minimumCapacity: requiredCapacity))
-        } else {
-            self = .inline(InlineElements())
+            var buffer = TinyBuffer.heap(UniqueArray<UInt8>(minimumCapacity: requiredCapacity))
+            return try body(&buffer)
+        }
+        return try InlineElements.withInlineAllocation { elements throws(Failure) -> R in
+            var buffer = TinyBuffer.inline(elements)
+            return try body(&buffer)
         }
     }
 
-    /// Initializes a `TinyBuffer`, reserving the requested capacity if the it sees fit.
+    /// Runs `body` with an empty `TinyBuffer`, allocating on the heap if the function sees fit.
     @inlinable
-    init(preferredCapacity: Int) {
-        /// We have a test to ensure the UniqueArray, after having 23 elements and when you want to
-        /// append the 24th element, it will allocate a new buffer with a capacity of 24.
+    static func withInlineAllocation<R: ~Copyable, Failure: Error>(
+        preferredCapacity: Int,
+        _ body: (inout TinyBuffer) throws(Failure) -> R
+    ) throws(Failure) -> R {
+        /// We have a test to ensure the UniqueArray, after having 24 elements and when you want to
+        /// append the 25th element, it will allocate a new buffer with a capacity of 36.
         ///
-        /// If the preferred capacity is less than 23, we can use the inline elements anyway to begin
+        /// If the preferred capacity is less than 24, we can use the inline elements anyway to begin
         /// with, because even if we need to allocate a new buffer, we're only allocating once anyway.
         if preferredCapacity > TINY_ARRAY__UNIQUE_ARRAY_ALLOCATION_THRESHOLD {
-            self = .heap(UniqueArray<UInt8>(minimumCapacity: preferredCapacity))
-        } else {
-            self = .inline(InlineElements())
+            var buffer = TinyBuffer.heap(UniqueArray<UInt8>(minimumCapacity: preferredCapacity))
+            return try body(&buffer)
+        }
+        return try InlineElements.withInlineAllocation { elements throws(Failure) -> R in
+            var buffer = TinyBuffer.inline(elements)
+            return try body(&buffer)
         }
     }
 
@@ -49,7 +68,7 @@ enum TinyBuffer: ~Copyable {
     var count: Int {
         switch self {
         case .inline(let elements):
-            return Int(elements.count)
+            return elements.count
         case .heap(let array):
             return array.count
         }
@@ -107,7 +126,7 @@ enum TinyBuffer: ~Copyable {
     mutating func append(copying span: Span<UInt8>) {
         switch consume self {
         case .inline(var elements):
-            let requiredCapacity = span.count + Int(elements.count)
+            let requiredCapacity = span.count + elements.count
             if requiredCapacity > InlineElements.maximumCapacity {
                 /// We need to grow the buffer to something more than the amount of bytes we can hold inline.
                 var array = UniqueArray(copying: elements, capacity: requiredCapacity)
@@ -177,7 +196,7 @@ enum TinyBuffer: ~Copyable {
         /// Use heap if the required capacity requires so
         switch consume self {
         case .inline(var elements):
-            let newCapacity = Int(elements.count) &+ extraCapacity
+            let newCapacity = elements.count &+ extraCapacity
             if newCapacity > InlineElements.maximumCapacity {
                 /// We need to grow the buffer to something more than the amount of bytes we can hold inline.
                 var array = UniqueArray(copying: elements, capacity: newCapacity)
@@ -215,7 +234,7 @@ enum TinyBuffer: ~Copyable {
         /// Use heap if the required capacity requires so
         switch consume self {
         case .inline(var elements):
-            let newCapacity = Int(elements.count) &+ utf8View.count
+            let newCapacity = elements.count &+ utf8View.count
             if newCapacity > InlineElements.maximumCapacity {
                 /// We need to grow the buffer to something more than the amount of bytes we can hold inline.
                 var array = UniqueArray(copying: elements, capacity: newCapacity)
@@ -247,43 +266,42 @@ enum TinyBuffer: ~Copyable {
 
 @available(swiftIDNAApplePlatforms 10.15, *)
 extension TinyBuffer {
-    /// Some inline bytes, last of which is the count byte.
-    /// Currently 23 bytes + 1 count bytes == 24 bytes == 3 x 8 bytes == 3 x UInt64.
+    /// Some bytes held in a inline stack allocation, alongside their count.
+    /// Currently holds up to 24 bytes.
     @usableFromInline
-    struct InlineElements: ~Copyable {
+    struct InlineElements: ~Copyable, ~Escapable {
         @usableFromInline
-        typealias BitPattern = (UInt64, UInt64, UInt64)
-
+        var buffer: UnsafeMutableBufferPointer<UInt8>
         @usableFromInline
-        var bits: BitPattern
+        var count: Int
 
         /// The maximum number of bytes that can be held inline.
         @inlinable
         static var maximumCapacity: Int {
-            23
+            24
         }
 
-        /// The index of the count byte in the `bits` tuple.
+        @inlinable
+        @_lifetime(borrow buffer)
+        init(buffer: UnsafeMutableBufferPointer<UInt8>, count: Int) {
+            self.buffer = buffer
+            self.count = count
+        }
+
+        /// Runs `body` with an empty `InlineElements` backed by a temporary stack allocation.
         ///
-        /// Meaning that the count of elements in this buffer is the same as the following expression:
-        /// ```swift
-        /// let countOfElements = withUnsafeBytes(of: bits) { $0[Self.countByteIndex] }
-        /// ```
+        /// This is the only place the backing allocation is made, because this is the type
+        /// that actually holds onto it.
         @inlinable
-        static var countByteIndex: Int {
-            Self.maximumCapacity
-        }
-
-        @inlinable
-        init() {
-            self.bits = (0, 0, 0)
-        }
-
-        /// The count of elements in this buffer.
-        @inlinable
-        var count: UInt8 {
-            withUnsafeBytes(of: bits.2) {
-                $0[7]
+        @inline(__always)
+        static func withInlineAllocation<R: ~Copyable, Failure: Error>(
+            _ body: (consuming InlineElements) throws(Failure) -> R
+        ) throws(Failure) -> R {
+            try withUnsafeTemporaryAllocation(
+                of: UInt8.self,
+                capacity: Self.maximumCapacity
+            ) { alloc throws(Failure) -> R in
+                try body(InlineElements(buffer: alloc, count: 0))
             }
         }
 
@@ -303,48 +321,34 @@ extension TinyBuffer {
         @_transparent
         @inlinable
         func withSpan<T>(_ body: (Span<UInt8>) throws -> T) rethrows -> T {
-            try withUnsafeBytes(of: bits) { bitsPtr in
-                try bitsPtr.withMemoryRebound(to: UInt8.self) { bitsBytes in
-                    let count = bitsPtr[Self.countByteIndex]
-                    let bytesSpan = bitsBytes.span.extracting(unchecked: 0..<Int(count))
-                    return try body(bytesSpan)
-                }
-            }
+            let initialized = UnsafeBufferPointer(self.buffer.extracting(0..<self.count))
+            return try body(initialized.span)
         }
 
         /// Appends the given element to the buffer.
         /// Assumes the buffer has enough capacity to hold the element.
         @inlinable
         mutating func append(unchecked element: UInt8) {
-            withUnsafeMutableBytes(of: &bits) { bitsPtr in
-                let count = bitsPtr[Self.countByteIndex]
-                bitsPtr[Int(count)] = element
-                bitsPtr[Self.countByteIndex] = count &+ 1
-            }
+            self.buffer.initializeElement(at: self.count, to: element)
+            self.count &+= 1
         }
 
         /// Removes all the elements from the buffer.
         @inlinable
         mutating func removeAll() {
-            self.bits = (0, 0, 0)
+            self.count = 0
         }
 
         /// Gives access to the underlying buffer as an `OutputSpan<UInt8>`.
         @inlinable
         mutating func edit(_ block: (inout OutputSpan<UInt8>) -> Void) {
-            withUnsafeMutableBytes(of: &self.bits) { bitsPtr in
-                bitsPtr.withMemoryRebound(to: UInt8.self) { bytesPtr in
-                    let count = Int(bitsPtr[Self.countByteIndex])
-                    let mutableBytes = bytesPtr.extracting(0..<Self.maximumCapacity)
-                    var span = OutputSpan(buffer: mutableBytes, initializedCount: count)
+            var span = OutputSpan(buffer: self.buffer, initializedCount: self.count)
 
-                    block(&span)
+            block(&span)
 
-                    let newCount = span.finalize(for: mutableBytes)
-                    span = OutputSpan()
-                    bitsPtr[Self.countByteIndex] = UInt8(newCount)
-                }
-            }
+            let newCount = span.finalize(for: self.buffer)
+            span = OutputSpan()
+            self.count = newCount
         }
 
         /// Inserts the given UTF-8 view at the given index into the buffer.
@@ -353,43 +357,34 @@ extension TinyBuffer {
         /// Hence why it is called `"unchecked"Insert`.
         @inlinable
         mutating func uncheckedInsert(copying utf8View: Unicode.Scalar.UTF8View, at index: Int) {
-            withUnsafeMutableBytes(of: &self.bits) { bitsPtr in
-                bitsPtr.withMemoryRebound(to: UInt8.self) { bytesPtr in
-                    let count = bitsPtr[Self.countByteIndex]
-                    let usedCapacity = Int(count)
-                    let utf8ViewCount = utf8View.count
-                    let newCount = usedCapacity + utf8ViewCount
+            let usedCapacity = self.count
+            let utf8ViewCount = utf8View.count
+            let newCount = usedCapacity + utf8ViewCount
 
-                    assert(utf8ViewCount != 0)
-                    assert(newCount <= InlineElements.maximumCapacity)
+            assert(utf8ViewCount != 0)
+            assert(newCount <= InlineElements.maximumCapacity)
 
-                    /// Move the element that is going to be overwritten, to exactly after the
-                    /// new elements will be.
-                    bitsPtr[newCount] = bitsPtr[index]
+            let targetRange = Range<Int>(uncheckedBounds: (index, index &+ utf8ViewCount))
+            let target = self.buffer.extracting(targetRange)
 
-                    let targetRange = Range<Int>(uncheckedBounds: (index, index &+ utf8ViewCount))
-                    let target = bytesPtr.extracting(targetRange)
+            if targetRange.lowerBound <= usedCapacity {
+                let moveRange = Range<Int>(uncheckedBounds: (index, usedCapacity))
+                let moveBytes = self.buffer.extracting(moveRange)
 
-                    if targetRange.lowerBound <= usedCapacity {
-                        let afterRange = Range(
-                            uncheckedBounds: (
-                                targetRange.upperBound,
-                                Self.countByteIndex
-                            )
-                        )
-                        let afterBytes = bytesPtr.extracting(afterRange)
+                let afterRange = Range<Int>(
+                    uncheckedBounds: (
+                        targetRange.upperBound,
+                        targetRange.upperBound &+ moveBytes.count
+                    )
+                )
+                let afterBytes = self.buffer.extracting(afterRange)
 
-                        let moveRange = Range<Int>(uncheckedBounds: (index, usedCapacity))
-                        let moveBytes = bytesPtr.extracting(moveRange)
-
-                        _ = afterBytes.moveInitialize(fromContentsOf: moveBytes)
-                    }
-
-                    _ = target.initialize(fromContentsOf: utf8View)
-
-                    bitsPtr[Self.countByteIndex] = UInt8(newCount)
-                }
+                _ = afterBytes.moveInitialize(fromContentsOf: moveBytes)
             }
+
+            _ = target.initialize(fromContentsOf: utf8View)
+
+            self.count = newCount
         }
 
         /// Ensures the buffer contains only valid UTF-8 and NFC-normalized bytes.
@@ -426,15 +421,8 @@ extension UniqueArray<UInt8> {
         assert(capacity > TinyBuffer.InlineElements.maximumCapacity)
 
         self.init(capacity: capacity) { output in
-            output.withUnsafeMutableBufferPointer { outputPtr, initializedCount in
-                withUnsafeBytes(of: elements.bits) { bitsPtr in
-                    bitsPtr.withMemoryRebound(to: UInt8.self) { bitsBytes in
-                        let count = Int(bitsPtr[TinyBuffer.InlineElements.countByteIndex])
-                        let elements = bitsBytes.extracting(0..<count)
-                        _ = outputPtr.initialize(fromContentsOf: elements)
-                        initializedCount = count
-                    }
-                }
+            elements.withSpan { span in
+                output.swift_idna_append(copying: span)
             }
         }
     }
@@ -461,11 +449,14 @@ extension [UInt8] {
 }
 
 @available(swiftIDNAApplePlatforms 10.15, *)
-extension IDNA.ConversionResult {
-    /// Initializes a `IDNA.ConversionResult` by consuming the given `TinyBuffer`.
+extension TinyBuffer {
+    /// Moves the contents of this buffer out as an `IDNA.ConversionResult`, leaving the buffer empty.
+    ///
+    /// This exists so the result can be produced from a buffer held by an `inout` binding (such as
+    /// a `withTemporary` closure parameter), which cannot be consumed directly.
     @inlinable
-    init(consuming array: consuming TinyBuffer) {
-        switch consume array {
+    mutating func takeAsConversionResult() -> IDNA.ConversionResult {
+        switch consume self {
         case .inline(let elements):
             /// We can just convert the inline elements to a string directly.
             ///
@@ -473,9 +464,11 @@ extension IDNA.ConversionResult {
             /// This is not too bad anyway, because if the inline elements hold 15 or less bytes,
             /// `String` will just hold the bytes inline as well.
             /// If there are 16 or more bytes though, an allocation will occur.
-            self = .string(String(copying: elements))
+            self = .heap(UniqueArray<UInt8>())
+            return .string(String(copying: elements))
         case .heap(let array):
-            self = .bytes(array)
+            self = .heap(UniqueArray<UInt8>())
+            return .bytes(array)
         }
     }
 }

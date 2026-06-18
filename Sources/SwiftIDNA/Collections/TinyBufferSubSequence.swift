@@ -1,13 +1,14 @@
 /// A `TinyBuffer` subsequence that uses elements from `startIndex` and forward.
 @available(swiftIDNAApplePlatforms 10.15, *)
 @usableFromInline
-struct TinyBufferSubsequence: ~Copyable {
+struct TinyBufferSubsequence: ~Copyable, ~Escapable {
     @usableFromInline
     var base: TinyBuffer
     @usableFromInline
     var startIndex: Int
 
     @inlinable
+    @_lifetime(copy base)
     init(base: consuming TinyBuffer, startIndex: Int) {
         self.base = base
         self.startIndex = startIndex
