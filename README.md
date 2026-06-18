@@ -89,6 +89,7 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 * To see up to date information about performance of this package, please go to this [benchmarks list](https://github.com/swift-dns/swift-idna/actions/workflows/benchmarks.yml?query=branch%3Amain), and choose the most recent benchmark. You'll see a summary of the benchmark there.
 * The results below are all reproducible by simply running `scripts/benchmark.bash` on a machine of your own.
 * swift-foundation applies short-circuits of its own for ascii domain names so it _should_ perform better than ICU (but likely still not as good as swift-idna).
+* Last update: Jun 18, 2026
 
 ### Summary
 
@@ -101,49 +102,49 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 
 #### CPU Time
 
-Benchmark | Foundation | swift-idna | Improv. Ratio
-| -- | -- | -- | --
-To_ASCII_Lax_öob_dot_se_CPU_300K | 80ms | 80ms | 1x
-To_ASCII_Lax_生命之花_dot_中国_CPU_200K | 80ms | 120ms | 0.67x
-To_Unicode_Lax_öob_dot_se_CPU_300K | 100ms | 80ms | 1.25x
-To_Unicode_Lax_生命之花_dot_中国_CPU_200K | 110ms | 110ms | 1x
+| Benchmark                                  | Foundation | swift-idna | Improv. Ratio |
+| ------------------------------------------ | ---------- | ---------- | ------------- |
+| To_ASCII_Lax_öob_dot_se_CPU_300K           | 100ms      | 80ms       | 1.25x         |
+| To_ASCII_Lax_生命之花_dot_中国_CPU_200K    | 100ms      | 110ms      | 0.91x         |
+| To_Unicode_Lax_öob_dot_se_CPU_300K         | 110ms      | 90ms       | 1.22x         |
+| To_Unicode_Lax_生命之花_dot_中国_CPU_200K  | 130ms      | 120ms      | 1.08x         |
 
 #### Malloc Count
 
-Benchmark | Foundation | swift-idna | Improv. Ratio
-| -- | -- | -- | --
-To_ASCII_Lax_öob_dot_se_Malloc | 2 | 1 | 2x
-To_ASCII_Lax_生命之花_dot_中国_Malloc | 5 | 4 | 1.25x
-To_Unicode_Lax_öob_dot_se_Malloc | 1 | 1 | 1x
-To_Unicode_Lax_生命之花_dot_中国_Malloc | 4 | 3 | 1.33x
+| Benchmark                                | Foundation | swift-idna | Improv. Ratio |
+| ---------------------------------------- | ---------- | ---------- | ------------- |
+| To_ASCII_Lax_öob_dot_se_Malloc           | 2          | 1          | 2x            |
+| To_ASCII_Lax_生命之花_dot_中国_Malloc    | 5          | 4          | 1.25x         |
+| To_Unicode_Lax_öob_dot_se_Malloc         | 1          | 1          | 1x            |
+| To_Unicode_Lax_生命之花_dot_中国_Malloc  | 4          | 3          | 1.33x         |
 
 ### ASCII Domain Names
 
 #### CPU Time
 
-Benchmark | Foundation | swift-idna | Improv. Ratio
-| -- | -- | -- | --
-To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_5M | 610ms | 140ms | 4.36x
-To_ASCII_Lowercased_google_dot_com_CPU_8M | 650ms | 180ms | 3.61x
-To_ASCII_Uppercased_app-analytics-services_dot_com_CPU_3M | 340ms | 180ms | 1.89x
-To_ASCII_Uppercased_google_dot_com_CPU_5M | 380ms | 140ms | 2.71x
-To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_4M | 470ms | 170ms | 2.76x
-To_Unicode_Lowercased_google_dot_com_CPU_8M | 650ms | 230ms | 2.83x
-To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_4M | 440ms | 250ms | 1.76x
-To_Unicode_Uppercased_google_dot_com_CPU_5M | 380ms | 180ms | 2.11x
+| Benchmark                                                   | Foundation | swift-idna | Improv. Ratio |
+| ----------------------------------------------------------- | ---------- | ---------- | ------------- |
+| To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_5M   | 580ms      | 120ms      | 4.83x         |
+| To_ASCII_Lowercased_google_dot_com_CPU_8M                   | 580ms      | 150ms      | 3.87x         |
+| To_ASCII_Uppercased_app-analytics-services_dot_com_CPU_3M   | 350ms      | 130ms      | 2.69x         |
+| To_ASCII_Uppercased_google_dot_com_CPU_5M                   | 350ms      | 120ms      | 2.92x         |
+| To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_4M | 420ms      | 130ms      | 3.23x         |
+| To_Unicode_Lowercased_google_dot_com_CPU_8M                 | 580ms      | 190ms      | 3.05x         |
+| To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_4M | 420ms      | 220ms      | 1.91x         |
+| To_Unicode_Uppercased_google_dot_com_CPU_5M                 | 360ms      | 150ms      | 2.4x          |
 
 #### Malloc Count
 
-Benchmark | Foundation | swift-idna | Improv. Ratio
-| -- | -- | -- | --
-To_ASCII_Lowercased_app-analytics-services_dot_com_Malloc | 2 | 0 | ∞
-To_ASCII_Lowercased_google_dot_com_Malloc | 1 | 0 | ∞
-To_ASCII_Uppercased_app-analytics-services_dot_com_Malloc | 2 | 1 | 2x
-To_ASCII_Uppercased_google_dot_com_Malloc | 1 | 0 | ∞
-To_Unicode_Lowercased_app-analytics-services_dot_com_Malloc | 2 | 0 | ∞
-To_Unicode_Lowercased_google_dot_com_Malloc | 1 | 0 | ∞
-To_Unicode_Uppercased_app-analytics-services_dot_com_Malloc | 2 | 1 | 2x
-To_Unicode_Uppercased_google_dot_com_Malloc | 1 | 0 | ∞
+| Benchmark                                                   | Foundation | swift-idna | Improv. Ratio |
+| ----------------------------------------------------------- | ---------- | ---------- | ------------- |
+| To_ASCII_Lowercased_app-analytics-services_dot_com_Malloc   | 2          | 0          | ∞             |
+| To_ASCII_Lowercased_google_dot_com_Malloc                   | 1          | 0          | ∞             |
+| To_ASCII_Uppercased_app-analytics-services_dot_com_Malloc   | 2          | 1          | 2x            |
+| To_ASCII_Uppercased_google_dot_com_Malloc                   | 1          | 0          | ∞             |
+| To_Unicode_Lowercased_app-analytics-services_dot_com_Malloc | 2          | 0          | ∞             |
+| To_Unicode_Lowercased_google_dot_com_Malloc                 | 1          | 0          | ∞             |
+| To_Unicode_Uppercased_app-analytics-services_dot_com_Malloc | 2          | 1          | 2x            |
+| To_Unicode_Uppercased_google_dot_com_Malloc                 | 1          | 0          | ∞             |
 
 ## How To Add swift-idna To Your Project
 
@@ -151,7 +152,7 @@ To use the `swift-idna` library in a SwiftPM project,
 add the following line to the dependencies in your `Package.swift` file:
 
 ```swift
-.package(url: "https://github.com/mahdibm/swift-idna.git", from: "1.0.0-beta.15"),
+.package(url: "https://github.com/mahdibm/swift-idna.git", from: "1.0.0-beta.25"),
 ```
 
 Include `SwiftIDNA` as a dependency for your targets:
