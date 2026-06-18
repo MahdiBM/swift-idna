@@ -19,8 +19,8 @@ extension IDNA {
         var errors = MappingErrors(domainNameSpan: span)
 
         // 1.
-        let result = TinyBuffer.withTemporary { (convertedBytes) -> ConversionResult in
-            TinyBuffer.withTemporary { (processedBytes) -> ConversionResult in
+        let result = TinyBuffer.withInlineAllocation { convertedBytes -> ConversionResult in
+            TinyBuffer.withInlineAllocation { processedBytes -> ConversionResult in
 
                 self.mainProcessing(
                     _uncheckedAssumingValidUTF8: span,
@@ -33,7 +33,7 @@ extension IDNA {
                 let outputReuseCapacityHint = convertedBytes.count
                 convertedBytes.removeAll(keepingCapacity: true)
 
-                return TinyBuffer.withTemporary(preferredCapacity: outputReuseCapacityHint) {
+                return TinyBuffer.withInlineAllocation(preferredCapacity: outputReuseCapacityHint) {
                     (outputBufferForReuse) -> ConversionResult in
 
                     processedBytes.withSpan { processedBytesSpan in
@@ -224,8 +224,8 @@ extension IDNA {
         var errors = MappingErrors(domainNameSpan: span)
 
         // 1.
-        let result = TinyBuffer.withTemporary { (reuseBuffer) -> ConversionResult in
-            TinyBuffer.withTemporary { (utf8Bytes) -> ConversionResult in
+        let result = TinyBuffer.withInlineAllocation { reuseBuffer -> ConversionResult in
+            TinyBuffer.withInlineAllocation { utf8Bytes -> ConversionResult in
 
                 self.mainProcessing(
                     _uncheckedAssumingValidUTF8: span,

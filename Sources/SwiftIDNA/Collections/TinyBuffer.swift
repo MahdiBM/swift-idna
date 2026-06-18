@@ -6,46 +6,50 @@ package var TINY_ARRAY__UNIQUE_ARRAY_ALLOCATION_THRESHOLD: Int {
 }
 
 /// A collection of bytes.
-/// Holds up to the first 23 elements in a temporary stack allocation, and then allocates a
+/// Holds up to the first 23 elements in a inline stack allocation, and then allocates a
 /// `UniqueArray` for the rest if needed.
 /// This is useful for skipping allocations if we don't have many bytes to store.
 @available(swiftIDNAApplePlatforms 10.15, *)
 @usableFromInline
 enum TinyBuffer: ~Copyable, ~Escapable {
-    case temporary(TemporaryElements)
+    case inline(InlineElements)
     case heap(UniqueArray<UInt8>)
 
-    /// Runs `body` with an empty `TinyBuffer` backed by a temporary stack allocation.
+    /// Runs `body` with an empty `TinyBuffer` backed by a inline stack allocation.
     @inlinable
-    static func withTemporary<R: ~Copyable, Failure: Error>(
+    @inline(__always)
+    static func withInlineAllocation<R: ~Copyable, Failure: Error>(
         _ body: (inout TinyBuffer) throws(Failure) -> R
     ) throws(Failure) -> R {
-        try Self.withTemporary(requiredCapacity: 0, body)
+        try Self.withInlineAllocation(requiredCapacity: 0, body)
     }
 
     /// Runs `body` with an empty `TinyBuffer`, unconditionally allocating on the heap if the
     /// requested capacity does not fit inline.
     @inlinable
-    static func withTemporary<R: ~Copyable, Failure: Error>(
+    @inline(__always)
+    static func withInlineAllocation<R: ~Copyable, Failure: Error>(
         requiredCapacity: Int,
         _ body: (inout TinyBuffer) throws(Failure) -> R
     ) throws(Failure) -> R {
-        if requiredCapacity > TemporaryElements.maximumCapacity {
+        if requiredCapacity > InlineElements.maximumCapacity {
             var buffer = TinyBuffer.heap(UniqueArray<UInt8>(minimumCapacity: requiredCapacity))
             return try body(&buffer)
         }
         return try withUnsafeTemporaryAllocation(
             of: UInt8.self,
-            capacity: TemporaryElements.maximumCapacity
-        ) { (allocation) throws(Failure) -> R in
-            var buffer = TinyBuffer.temporary(TemporaryElements(buffer: allocation, count: 0))
+            capacity: InlineElements.maximumCapacity
+        ) { alloc throws(Failure) -> R in
+            var buffer = TinyBuffer.inline(
+                InlineElements(buffer: alloc, count: 0)
+            )
             return try body(&buffer)
         }
     }
 
     /// Runs `body` with an empty `TinyBuffer`, allocating on the heap if the function sees fit.
     @inlinable
-    static func withTemporary<R: ~Copyable, Failure: Error>(
+    static func withInlineAllocation<R: ~Copyable, Failure: Error>(
         preferredCapacity: Int,
         _ body: (inout TinyBuffer) throws(Failure) -> R
     ) throws(Failure) -> R {
@@ -60,9 +64,11 @@ enum TinyBuffer: ~Copyable, ~Escapable {
         }
         return try withUnsafeTemporaryAllocation(
             of: UInt8.self,
-            capacity: TemporaryElements.maximumCapacity
-        ) { (allocation) throws(Failure) -> R in
-            var buffer = TinyBuffer.temporary(TemporaryElements(buffer: allocation, count: 0))
+            capacity: InlineElements.maximumCapacity
+        ) { alloc throws(Failure) -> R in
+            var buffer = TinyBuffer.inline(
+                InlineElements(buffer: alloc, count: 0)
+            )
             return try body(&buffer)
         }
     }
@@ -71,7 +77,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     @inlinable
     var count: Int {
         switch self {
-        case .temporary(let elements):
+        case .inline(let elements):
             return elements.count
         case .heap(let array):
             return array.count
@@ -82,7 +88,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     @inlinable
     var isEmpty: Bool {
         switch self {
-        case .temporary(let elements):
+        case .inline(let elements):
             return elements.isEmpty
         case .heap(let array):
             return array.isEmpty
@@ -93,7 +99,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     @inlinable
     mutating func preferablyReserveCapacity(_ preferredCapacity: Int) {
         switch consume self {
-        case .temporary(let elements):
+        case .inline(let elements):
             /// We have a test to ensure the UniqueArray, after having 23 elements and when you want to
             /// append the 24th element, it will allocate a new buffer with a capacity of 24.
             ///
@@ -103,7 +109,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
                 let array = UniqueArray(copying: elements, capacity: preferredCapacity)
                 self = .heap(array)
             } else {
-                self = .temporary(elements)
+                self = .inline(elements)
             }
         case .heap(var array):
             array.reserveCapacity(preferredCapacity)
@@ -116,9 +122,9 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     @inlinable
     mutating func append(unchecked element: UInt8) {
         switch consume self {
-        case .temporary(var elements):
+        case .inline(var elements):
             elements.append(unchecked: element)
-            self = .temporary(elements)
+            self = .inline(elements)
         case .heap(var array):
             array.append(element)
             self = .heap(array)
@@ -129,9 +135,9 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     @inlinable
     mutating func append(copying span: Span<UInt8>) {
         switch consume self {
-        case .temporary(var elements):
+        case .inline(var elements):
             let requiredCapacity = span.count + elements.count
-            if requiredCapacity > TemporaryElements.maximumCapacity {
+            if requiredCapacity > InlineElements.maximumCapacity {
                 /// We need to grow the buffer to something more than the amount of bytes we can hold inline.
                 var array = UniqueArray(copying: elements, capacity: requiredCapacity)
                 array.append(copying: span)
@@ -141,7 +147,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
                 elements.edit { output in
                     output.swift_idna_append(copying: span)
                 }
-                self = .temporary(elements)
+                self = .inline(elements)
             }
         case .heap(var array):
             array.append(copying: span)
@@ -153,9 +159,9 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     @inlinable
     mutating func removeAll(keepingCapacity: Bool) {
         switch consume self {
-        case .temporary(var elements):
+        case .inline(var elements):
             elements.removeAll()
-            self = .temporary(elements)
+            self = .inline(elements)
         case .heap(var array):
             array.removeAll(keepingCapacity: keepingCapacity)
             self = .heap(array)
@@ -166,11 +172,11 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     @inlinable
     mutating func edit(_ block: (inout OutputSpan<UInt8>) -> Void) {
         switch consume self {
-        case .temporary(var elements):
+        case .inline(var elements):
             elements.edit { output in
                 block(&output)
             }
-            self = .temporary(elements)
+            self = .inline(elements)
         case .heap(var array):
             array.edit { output in
                 block(&output)
@@ -183,7 +189,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     @inlinable
     func withSpan<T>(_ block: (Span<UInt8>) -> T) -> T {
         switch self {
-        case .temporary(let elements):
+        case .inline(let elements):
             return elements.withSpan(block)
         case .heap(let array):
             return block(array.span)
@@ -199,9 +205,9 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     ) {
         /// Use heap if the required capacity requires so
         switch consume self {
-        case .temporary(var elements):
+        case .inline(var elements):
             let newCapacity = elements.count &+ extraCapacity
-            if newCapacity > TemporaryElements.maximumCapacity {
+            if newCapacity > InlineElements.maximumCapacity {
                 /// We need to grow the buffer to something more than the amount of bytes we can hold inline.
                 var array = UniqueArray(copying: elements, capacity: newCapacity)
                 array.edit { output in
@@ -212,7 +218,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
                 elements.edit { output in
                     block(&output)
                 }
-                self = .temporary(elements)
+                self = .inline(elements)
             }
         case .heap(var array):
             array.append(addingCount: extraCapacity) { output in
@@ -237,16 +243,16 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     mutating func insert(copying utf8View: Unicode.Scalar.UTF8View, at index: Int) {
         /// Use heap if the required capacity requires so
         switch consume self {
-        case .temporary(var elements):
+        case .inline(var elements):
             let newCapacity = elements.count &+ utf8View.count
-            if newCapacity > TemporaryElements.maximumCapacity {
+            if newCapacity > InlineElements.maximumCapacity {
                 /// We need to grow the buffer to something more than the amount of bytes we can hold inline.
                 var array = UniqueArray(copying: elements, capacity: newCapacity)
                 array.insert(copying: utf8View, at: index)
                 self = .heap(array)
             } else {
                 elements.uncheckedInsert(copying: utf8View, at: index)
-                self = .temporary(elements)
+                self = .inline(elements)
             }
         case .heap(var array):
             array.insert(copying: utf8View, at: index)
@@ -258,9 +264,9 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     @inlinable
     mutating func _uncheckedAssumingValidUTF8_ensureNFC() {
         switch consume self {
-        case .temporary(var elements):
+        case .inline(var elements):
             elements._uncheckedAssumingValidUTF8_ensureNFC()
-            self = .temporary(elements)
+            self = .inline(elements)
         case .heap(var array):
             array._uncheckedAssumingValidUTF8_ensureNFC()
             self = .heap(array)
@@ -270,10 +276,10 @@ enum TinyBuffer: ~Copyable, ~Escapable {
 
 @available(swiftIDNAApplePlatforms 10.15, *)
 extension TinyBuffer {
-    /// Some bytes held in a temporary stack allocation, alongside their count.
+    /// Some bytes held in a inline stack allocation, alongside their count.
     /// Currently holds up to 23 bytes.
     @usableFromInline
-    struct TemporaryElements: ~Copyable, ~Escapable {
+    struct InlineElements: ~Copyable, ~Escapable {
         @usableFromInline
         var buffer: UnsafeMutableBufferPointer<UInt8>
         @usableFromInline
@@ -349,7 +355,7 @@ extension TinyBuffer {
             let newCount = usedCapacity + utf8ViewCount
 
             assert(utf8ViewCount != 0)
-            assert(newCount <= TemporaryElements.maximumCapacity)
+            assert(newCount <= InlineElements.maximumCapacity)
 
             let targetRange = Range<Int>(uncheckedBounds: (index, index &+ utf8ViewCount))
             let target = self.buffer.extracting(targetRange)
@@ -393,19 +399,19 @@ extension TinyBuffer {
 
 @available(swiftIDNAApplePlatforms 10.15, *)
 extension String {
-    /// Initializes a `String` by copying the given temporary elements.
+    /// Initializes a `String` by copying the given inline elements.
     @inlinable
-    init(copying elements: borrowing TinyBuffer.TemporaryElements) {
+    init(copying elements: borrowing TinyBuffer.InlineElements) {
         self = elements.withSpan { String(_uncheckedAssumingValidUTF8: $0) }
     }
 }
 
 @available(swiftIDNAApplePlatforms 10.15, *)
 extension UniqueArray<UInt8> {
-    /// Initializes a `UniqueArray<UInt8>` by copying the given temporary elements.
+    /// Initializes a `UniqueArray<UInt8>` by copying the given inline elements.
     @inlinable
-    init(copying elements: borrowing TinyBuffer.TemporaryElements, capacity: Int) {
-        assert(capacity > TinyBuffer.TemporaryElements.maximumCapacity)
+    init(copying elements: borrowing TinyBuffer.InlineElements, capacity: Int) {
+        assert(capacity > TinyBuffer.InlineElements.maximumCapacity)
 
         self.init(capacity: capacity) { output in
             elements.withSpan { span in
@@ -417,9 +423,9 @@ extension UniqueArray<UInt8> {
 
 @available(swiftIDNAApplePlatforms 10.15, *)
 extension [UInt8] {
-    /// Initializes a `[UInt8]` by copying the given temporary elements.
+    /// Initializes a `[UInt8]` by copying the given inline elements.
     @inlinable
-    init(copying elements: borrowing TinyBuffer.TemporaryElements) {
+    init(copying elements: borrowing TinyBuffer.InlineElements) {
         self = elements.withSpan { [UInt8](copying: $0) }
     }
 
@@ -427,7 +433,7 @@ extension [UInt8] {
     @inlinable
     init(copying array: borrowing TinyBuffer) {
         switch array {
-        case .temporary(let elements):
+        case .inline(let elements):
             self = [UInt8](copying: elements)
         case .heap(let array):
             self = [UInt8](copying: array.span)
@@ -444,7 +450,7 @@ extension TinyBuffer {
     @inlinable
     mutating func takeAsConversionResult() -> IDNA.ConversionResult {
         switch consume self {
-        case .temporary(let elements):
+        case .inline(let elements):
             /// We can just convert the inline elements to a string directly.
             ///
             /// TODO: Just give access to the inline elements instead of converting to a string?
