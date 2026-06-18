@@ -8,3 +8,4 @@ DerivedData/
 .netrc
 *.vsix
 Tests/IDNATests/__LocalProfilingTests.swift
+AGENTS.md
