@@ -2,11 +2,11 @@ public import BasicContainers
 
 @inlinable
 package var TINY_ARRAY__UNIQUE_ARRAY_ALLOCATION_THRESHOLD: Int {
-    35
+    36
 }
 
 /// A collection of bytes.
-/// Holds up to the first 23 elements in a inline stack allocation, and then allocates a
+/// Holds up to the first 24 elements in a inline stack allocation, and then allocates a
 /// `UniqueArray` for the rest if needed.
 /// This is useful for skipping allocations if we don't have many bytes to store.
 @available(swiftIDNAApplePlatforms 10.15, *)
@@ -48,10 +48,10 @@ enum TinyBuffer: ~Copyable, ~Escapable {
         preferredCapacity: Int,
         _ body: (inout TinyBuffer) throws(Failure) -> R
     ) throws(Failure) -> R {
-        /// We have a test to ensure the UniqueArray, after having 23 elements and when you want to
-        /// append the 24th element, it will allocate a new buffer with a capacity of 24.
+        /// We have a test to ensure the UniqueArray, after having 24 elements and when you want to
+        /// append the 25th element, it will allocate a new buffer with a capacity of 36.
         ///
-        /// If the preferred capacity is less than 23, we can use the inline elements anyway to begin
+        /// If the preferred capacity is less than 24, we can use the inline elements anyway to begin
         /// with, because even if we need to allocate a new buffer, we're only allocating once anyway.
         if preferredCapacity > TINY_ARRAY__UNIQUE_ARRAY_ALLOCATION_THRESHOLD {
             var buffer = TinyBuffer.heap(UniqueArray<UInt8>(minimumCapacity: preferredCapacity))
@@ -267,7 +267,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
 @available(swiftIDNAApplePlatforms 10.15, *)
 extension TinyBuffer {
     /// Some bytes held in a inline stack allocation, alongside their count.
-    /// Currently holds up to 23 bytes.
+    /// Currently holds up to 24 bytes.
     @usableFromInline
     struct InlineElements: ~Copyable, ~Escapable {
         @usableFromInline
@@ -278,7 +278,7 @@ extension TinyBuffer {
         /// The maximum number of bytes that can be held inline.
         @inlinable
         static var maximumCapacity: Int {
-            23
+            24
         }
 
         @inlinable
