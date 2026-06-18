@@ -89,7 +89,7 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 * To see up to date information about performance of this package, please go to this [benchmarks list](https://github.com/swift-dns/swift-idna/actions/workflows/benchmarks.yml?query=branch%3Amain), and choose the most recent benchmark. You'll see a summary of the benchmark there.
 * The results below are all reproducible by simply running `scripts/benchmark.bash` on a machine of your own.
 * swift-foundation applies short-circuits of its own for ascii domain names so it _should_ perform better than ICU (but likely still not as good as swift-idna).
-* Last update: Jun 18, 2026
+* Last update: Jun 19, 2026
 
 ### Summary
 
@@ -125,7 +125,7 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 
 | Benchmark                                                   | Foundation | swift-idna | Improv. Ratio |
 | ----------------------------------------------------------- | ---------- | ---------- | ------------- |
-| To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_5M   | 580ms      | 120ms      | 4.83x         |
+| To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_5M   | 530ms      | 120ms      | 4.42x         |
 | To_ASCII_Lowercased_google_dot_com_CPU_8M                   | 580ms      | 150ms      | 3.87x         |
 | To_ASCII_Uppercased_app-analytics-services_dot_com_CPU_3M   | 340ms      | 130ms      | 2.62x         |
 | To_ASCII_Uppercased_google_dot_com_CPU_5M                   | 350ms      | 120ms      | 2.92x         |
