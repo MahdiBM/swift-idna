@@ -126,7 +126,7 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 | ----------------------------------------------------------- | ---------- | ---------- | ------------- |
 | To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_5M   | 580ms      | 120ms      | 4.83x         |
 | To_ASCII_Lowercased_google_dot_com_CPU_8M                   | 580ms      | 150ms      | 3.87x         |
-| To_ASCII_Uppercased_app-analytics-services_dot_com_CPU_3M   | 350ms      | 130ms      | 2.69x         |
+| To_ASCII_Uppercased_app-analytics-services_dot_com_CPU_3M   | 340ms      | 130ms      | 2.62x         |
 | To_ASCII_Uppercased_google_dot_com_CPU_5M                   | 350ms      | 120ms      | 2.92x         |
 | To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_4M | 420ms      | 130ms      | 3.23x         |
 | To_Unicode_Lowercased_google_dot_com_CPU_8M                 | 580ms      | 190ms      | 3.05x         |
