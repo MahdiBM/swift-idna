@@ -94,9 +94,10 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 ### Summary
 
 > [!NOTE]
-> **swift-idna** wins the **Malloc count** benchmarks by far.
-> **ICU** wins the **Non-ASCII Domain Names** CPU time, by a bit.
-> **swift-idna** wins **ASCII Domain Names** CPU time by far.
+> **swift-idna** wins 22 of the 24 benchmarks, ties 1, loses 1.
+> **ICU** wins 1 of the 12 cpu-time benchmarks by 9%.
+> **swift-idna** commits considerably less heap allocations.
+> **swift-idna** is much faster for the vast majority of the domain names in the wild, which are ASCII.
 
 ### Non-ASCII Domain Names
 
@@ -105,18 +106,18 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 | Benchmark                                  | Foundation | swift-idna | Improv. Ratio |
 | ------------------------------------------ | ---------- | ---------- | ------------- |
 | To_ASCII_Lax_öob_dot_se_CPU_300K           | 100ms      | 80ms       | 1.25x         |
-| To_ASCII_Lax_生命之花_dot_中国_CPU_200K    | 100ms      | 110ms      | 0.91x         |
+| To_ASCII_Lax_生命之花_dot_中国_CPU_200K      | 100ms      | 110ms      | 0.91x         |
 | To_Unicode_Lax_öob_dot_se_CPU_300K         | 110ms      | 90ms       | 1.22x         |
-| To_Unicode_Lax_生命之花_dot_中国_CPU_200K  | 130ms      | 120ms      | 1.08x         |
+| To_Unicode_Lax_生命之花_dot_中国_CPU_200K    | 130ms      | 120ms      | 1.08x         |
 
 #### Malloc Count
 
 | Benchmark                                | Foundation | swift-idna | Improv. Ratio |
 | ---------------------------------------- | ---------- | ---------- | ------------- |
 | To_ASCII_Lax_öob_dot_se_Malloc           | 2          | 1          | 2x            |
-| To_ASCII_Lax_生命之花_dot_中国_Malloc    | 5          | 4          | 1.25x         |
+| To_ASCII_Lax_生命之花_dot_中国_Malloc      | 5          | 4          | 1.25x         |
 | To_Unicode_Lax_öob_dot_se_Malloc         | 1          | 1          | 1x            |
-| To_Unicode_Lax_生命之花_dot_中国_Malloc  | 4          | 3          | 1.33x         |
+| To_Unicode_Lax_生命之花_dot_中国_Malloc    | 4          | 3          | 1.33x         |
 
 ### ASCII Domain Names
 
