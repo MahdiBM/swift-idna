@@ -36,13 +36,8 @@ enum TinyBuffer: ~Copyable, ~Escapable {
             var buffer = TinyBuffer.heap(UniqueArray<UInt8>(minimumCapacity: requiredCapacity))
             return try body(&buffer)
         }
-        return try withUnsafeTemporaryAllocation(
-            of: UInt8.self,
-            capacity: InlineElements.maximumCapacity
-        ) { alloc throws(Failure) -> R in
-            var buffer = TinyBuffer.inline(
-                InlineElements(buffer: alloc, count: 0)
-            )
+        return try InlineElements.withInlineAllocation { elements throws(Failure) -> R in
+            var buffer = TinyBuffer.inline(elements)
             return try body(&buffer)
         }
     }
@@ -62,13 +57,8 @@ enum TinyBuffer: ~Copyable, ~Escapable {
             var buffer = TinyBuffer.heap(UniqueArray<UInt8>(minimumCapacity: preferredCapacity))
             return try body(&buffer)
         }
-        return try withUnsafeTemporaryAllocation(
-            of: UInt8.self,
-            capacity: InlineElements.maximumCapacity
-        ) { alloc throws(Failure) -> R in
-            var buffer = TinyBuffer.inline(
-                InlineElements(buffer: alloc, count: 0)
-            )
+        return try InlineElements.withInlineAllocation { elements throws(Failure) -> R in
+            var buffer = TinyBuffer.inline(elements)
             return try body(&buffer)
         }
     }
@@ -296,6 +286,23 @@ extension TinyBuffer {
         init(buffer: UnsafeMutableBufferPointer<UInt8>, count: Int) {
             self.buffer = buffer
             self.count = count
+        }
+
+        /// Runs `body` with an empty `InlineElements` backed by a temporary stack allocation.
+        ///
+        /// This is the only place the backing allocation is made, because this is the type
+        /// that actually holds onto it.
+        @inlinable
+        @inline(__always)
+        static func withInlineAllocation<R: ~Copyable, Failure: Error>(
+            _ body: (consuming InlineElements) throws(Failure) -> R
+        ) throws(Failure) -> R {
+            try withUnsafeTemporaryAllocation(
+                of: UInt8.self,
+                capacity: Self.maximumCapacity
+            ) { alloc throws(Failure) -> R in
+                try body(InlineElements(buffer: alloc, count: 0))
+            }
         }
 
         /// Whether this buffer is empty.
