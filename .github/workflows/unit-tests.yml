@@ -10,7 +10,7 @@ on:
 
 defaults:
   run:
-    shell: bash --noprofile --norc -e -u -o pipefail {0}
+    shell: bash --noprofile --norc -Eeuo pipefail {0}
 
 jobs:
   linux-unit:
@@ -66,6 +66,7 @@ jobs:
       - name: Run tests
         run: |
           swift test \
+            --skip "IntegrationTests." \
             --skip-build \
             --enable-code-coverage \
             -Xswiftc -require-explicit-sendable \
@@ -262,6 +263,7 @@ jobs:
       - name: Run tests
         run: |
           swift test \
+            --skip "IntegrationTests." \
             --skip-build \
             --enable-code-coverage \
             -Xswiftc -require-explicit-sendable \
