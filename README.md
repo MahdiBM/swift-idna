@@ -29,6 +29,23 @@
 
 A high performance, highly optimized multi-platform implementation of Punycode and IDNA (Internationalized Domain Names in Applications) as per [RFC 5891](https://datatracker.ietf.org/doc/html/rfc5891) and friends.
 
+## Table of Contents
+
+- [Notes](#notes)
+- [Usage](#usage)
+- [Implementation](#implementation)
+  - [Current supported IDNA flags](#current-supported-idna-flags)
+- [Benchmark Comparisons VS swift-foundation's ICU](#benchmark-comparisons-vs-swift-foundations-icu)
+  - [Summary](#summary)
+  - [Non-ASCII Domain Names](#non-ascii-domain-names)
+    - [CPU Time](#cpu-time)
+    - [Malloc Count](#malloc-count)
+  - [ASCII Domain Names](#ascii-domain-names)
+    - [CPU Time](#cpu-time-1)
+    - [Malloc Count](#malloc-count-1)
+- [How To Add swift-idna To Your Project](#how-to-add-swift-idna-to-your-project)
+- [Acknowledgments](#acknowledgments)
+
 ## Notes
 
 - The only dependency of `swift-idna` is `swift-collections`, and it does not depend on `Foundation`.
