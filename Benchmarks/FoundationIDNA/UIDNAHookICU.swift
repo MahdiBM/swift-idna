@@ -71,7 +71,8 @@ package struct UIDNAHookICU {
             return nil
         }
 
-        let result: String? = withUnsafeTemporaryAllocation(
+        /// `Unprotected` is fine. We're just in the benchmarks, not in actual code.
+        let result: String? = _withUnprotectedUnsafeTemporaryAllocation(
             of: T.self,
             capacity: maxHostBufferLength
         ) { outBuffer in
@@ -250,7 +251,11 @@ extension UTF8.CodeUnit {
 extension String {
     init?(_utf16 input: UnsafeBufferPointer<UInt16>) {
         // Allocate input.count * 3 code points since one UTF16 code point may require up to three UTF8 code points when transcoded
-        let str = withUnsafeTemporaryAllocation(of: UTF8.CodeUnit.self, capacity: input.count * 3) {
+        /// `Unprotected` is fine. We're just in the benchmarks, not in actual code.
+        let str = _withUnprotectedUnsafeTemporaryAllocation(
+            of: UTF8.CodeUnit.self,
+            capacity: input.count * 3
+        ) {
             contents in
             var count = 0
             let error = transcode(

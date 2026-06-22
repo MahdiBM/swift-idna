@@ -297,7 +297,9 @@ extension TinyBuffer {
         static func withInlineAllocation<R: ~Copyable, Failure: Error>(
             _ body: (consuming InlineElements) throws(Failure) -> R
         ) throws(Failure) -> R {
-            try withUnsafeTemporaryAllocation(
+            /// `Unprotected` is fine. This package contains extensive tests (Unicode test suite)
+            /// to ensure quite literally every single possibility.
+            try _withUnprotectedUnsafeTemporaryAllocation(
                 of: UInt8.self,
                 capacity: Self.maximumCapacity
             ) { alloc throws(Failure) -> R in
