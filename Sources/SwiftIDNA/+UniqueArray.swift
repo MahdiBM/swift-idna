@@ -1,6 +1,6 @@
 public import BasicContainers
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension UniqueArray<UInt8> {
     /// Converts the unique array to Normalization Form C (NFC), if needed.
     @usableFromInline

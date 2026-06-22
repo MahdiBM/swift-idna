@@ -18,7 +18,7 @@ import Darwin
 ///
 /// Unchecked `Sendable` because the pointer is guaranteed to be valid for the duration of the program execution.
 /// That's also why we don't try to deallocate.
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 public struct IDNAUnicodeScalarView: SendableMetatype, @unchecked Sendable {
     @usableFromInline
     let pointer: UnsafeBufferPointer<UInt8>
@@ -30,7 +30,7 @@ public struct IDNAUnicodeScalarView: SendableMetatype, @unchecked Sendable {
 }
 
 /// MARK: +Equatable
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension IDNAUnicodeScalarView: Equatable {
     public static func == (lhs: IDNAUnicodeScalarView, rhs: IDNAUnicodeScalarView) -> Bool {
         if lhs.pointer.count != rhs.pointer.count { return false }
@@ -45,7 +45,7 @@ extension IDNAUnicodeScalarView: Equatable {
 }
 
 /// MARK: +Sequence
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension IDNAUnicodeScalarView: Sequence {
     public typealias Element = Unicode.Scalar
 
@@ -132,7 +132,7 @@ extension IDNAUnicodeScalarView: Sequence {
 }
 
 /// MARK: +CustomStringConvertible
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension IDNAUnicodeScalarView: CustomStringConvertible {
     @inlinable
     public var description: String {
@@ -154,7 +154,7 @@ extension IDNAUnicodeScalarView: CustomStringConvertible {
 }
 
 /// MARK: +CustomDebugStringConvertible
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension IDNAUnicodeScalarView: CustomDebugStringConvertible {
     @inlinable
     public var debugDescription: String {

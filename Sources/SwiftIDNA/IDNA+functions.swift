@@ -1,6 +1,6 @@
 /// Mark: - String + IDNA
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension IDNA {
     /// `ToASCII` IDNA implementation.
     /// https://www.unicode.org/reports/tr46/#ToASCII
@@ -29,7 +29,7 @@ extension IDNA {
 
 /// Mark: - Span + IDNA
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension IDNA {
     /// `ToASCII` IDNA implementation.
     /// https://www.unicode.org/reports/tr46/#toASCII
@@ -58,7 +58,7 @@ extension IDNA {
 
 /// Mark: - UTF8Span + IDNA
 
-@available(swiftIDNAApplePlatforms 26, *)
+@available(SwiftStdlib 6.2, *)
 extension IDNA {
     /// `ToASCII` IDNA implementation.
     /// https://www.unicode.org/reports/tr46/#toASCII

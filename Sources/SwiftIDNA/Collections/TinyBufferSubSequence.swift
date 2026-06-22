@@ -1,5 +1,5 @@
 /// A `TinyBuffer` subsequence that uses elements from `startIndex` and forward.
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 @usableFromInline
 struct TinyBufferSubsequence: ~Copyable, ~Escapable {
     @usableFromInline
@@ -55,7 +55,7 @@ struct TinyBufferSubsequence: ~Copyable, ~Escapable {
     }
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension TinyBufferSubsequence {
     @inlinable
     var isASCII: Bool {

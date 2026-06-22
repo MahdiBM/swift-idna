@@ -1,4 +1,4 @@
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension IDNA {
     /// The result of checking characters for IDNA compliance.
     @usableFromInline

@@ -7,7 +7,7 @@ public import BasicContainers
 /// we have already calculated the capacity that we would need in case of allocation.
 ///
 /// This is tuned to this library's needs so it might need some adjustments for other use cases.
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 @usableFromInline
 struct LazyRigidArray<Integer: FixedWidthInteger>: ~Copyable {
     @usableFromInline

@@ -1,6 +1,6 @@
 public import BasicContainers
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension IDNA {
     @nonexhaustive
     public enum ConversionResult: ~Copyable {

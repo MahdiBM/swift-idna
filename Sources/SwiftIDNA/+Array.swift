@@ -1,4 +1,4 @@
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension Array where Element: BitwiseCopyable {
     /// Initializes an `Array` by copying the given span.
     @inlinable

@@ -1,6 +1,6 @@
 public import BasicContainers
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension IDNA {
     public struct CollectedMappingErrors: Error {
         public let domainName: String

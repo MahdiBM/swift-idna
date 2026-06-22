@@ -1,4 +1,4 @@
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension String {
     /// Whether or not the string's code points are all in Normalization Form C (NFC).
     /// This function directly checks the string's code points against what we would have if
@@ -29,10 +29,10 @@ extension String {
     /// Initializes a `String` by assuming the given span contains valid UTF-8 bytes.
     @usableFromInline
     init(_uncheckedAssumingValidUTF8 span: Span<UInt8>) {
-        if #available(swiftIDNAApplePlatforms 26, *) {
+        if #available(SwiftStdlib 6.2, *) {
             let utf8Span = UTF8Span(unchecked: span)
             self.init(copying: utf8Span)
-        } else if #available(swiftIDNAApplePlatforms 11, *) {
+        } else if #available(SwiftStdlib 5.3, *) {
             self.init(unsafeUninitializedCapacity: span.count) { buffer in
                 span.withUnsafeBytes { spanPtr in
                     let rawBuffer = UnsafeMutableRawBufferPointer(buffer)
@@ -72,7 +72,7 @@ extension String {
             fatalError("Unreachable code path")
         }
 
-        if #available(swiftIDNAApplePlatforms 26, *) {
+        if #available(SwiftStdlib 6.2, *) {
             return try body(self.utf8Span.span)
         }
 
@@ -104,7 +104,7 @@ extension String {
             _ buffer: UnsafeMutableBufferPointer<UInt8>
         ) throws -> Int
     ) rethrows {
-        if #available(swiftIDNAApplePlatforms 11, *) {
+        if #available(SwiftStdlib 5.3, *) {
             try self.init(unsafeUninitializedCapacity: capacity) { buffer in
                 try initializer(buffer)
             }
@@ -135,7 +135,7 @@ extension String {
     #endif
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension Substring {
     /// Gives access to the substring's UTF-8 bytes as a `Span<UInt8>`.
     #if canImport(Darwin)
@@ -155,7 +155,7 @@ extension Substring {
             fatalError("Unreachable code path")
         }
 
-        if #available(swiftIDNAApplePlatforms 26, *) {
+        if #available(SwiftStdlib 6.2, *) {
             return try body(self.utf8Span.span)
         }
 

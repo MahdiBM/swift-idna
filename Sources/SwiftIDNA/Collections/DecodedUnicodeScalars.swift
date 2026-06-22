@@ -1,7 +1,7 @@
 public import BasicContainers
 
 /// A container that holds a group of decoded Unicode scalars.
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 @usableFromInline
 struct DecodedUnicodeScalars: ~Copyable {
     @usableFromInline
@@ -25,7 +25,7 @@ struct DecodedUnicodeScalars: ~Copyable {
     }
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension DecodedUnicodeScalars {
     /// A subsequence of a `DecodedUnicodeScalars` container.
     /// This is tuned to this library's needs so it might need some adjustments for other use cases.

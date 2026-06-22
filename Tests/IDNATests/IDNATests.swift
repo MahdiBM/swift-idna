@@ -4,7 +4,7 @@ import Testing
 
 @Suite
 struct IDNATests {
-    @available(swiftIDNAApplePlatforms 26, *)
+    @available(SwiftStdlib 6.2, *)
     @Test func `UniqueArray allocates as expected`() {
         var array = UniqueArray<UInt8>(minimumCapacity: 24)
         for _ in 0..<25 {

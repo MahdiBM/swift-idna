@@ -9,7 +9,7 @@ package var TINY_ARRAY__UNIQUE_ARRAY_ALLOCATION_THRESHOLD: Int {
 /// Holds up to the first 24 elements in a inline stack allocation, and then allocates a
 /// `UniqueArray` for the rest if needed.
 /// This is useful for skipping allocations if we don't have many bytes to store.
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 @usableFromInline
 enum TinyBuffer: ~Copyable, ~Escapable {
     case inline(InlineElements)
@@ -264,7 +264,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     }
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension TinyBuffer {
     /// Some bytes held in a inline stack allocation, alongside their count.
     /// Currently holds up to 24 bytes.
@@ -404,7 +404,7 @@ extension TinyBuffer {
     }
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension String {
     /// Initializes a `String` by copying the given inline elements.
     @inlinable
@@ -413,7 +413,7 @@ extension String {
     }
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension UniqueArray<UInt8> {
     /// Initializes a `UniqueArray<UInt8>` by copying the given inline elements.
     @inlinable
@@ -428,7 +428,7 @@ extension UniqueArray<UInt8> {
     }
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension [UInt8] {
     /// Initializes a `[UInt8]` by copying the given inline elements.
     @inlinable
@@ -448,7 +448,7 @@ extension [UInt8] {
     }
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension TinyBuffer {
     /// Moves the contents of this buffer out as an `IDNA.ConversionResult`, leaving the buffer empty.
     ///

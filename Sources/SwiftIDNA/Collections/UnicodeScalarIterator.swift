@@ -1,5 +1,5 @@
 /// An iterator that decodes Unicode scalars from the same span of UTF-8 bytes.
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 @usableFromInline
 struct UnicodeScalarIterator {
     @usableFromInline

@@ -1,4 +1,4 @@
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension OutputSpan<UInt8> {
     /// Appends the given span to the output span.
     @inlinable
@@ -18,7 +18,7 @@ extension OutputSpan<UInt8> {
     }
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension OutputSpan where Element: BinaryInteger {
     /// Inserts the given element at the given index into the output span.
     @inlinable

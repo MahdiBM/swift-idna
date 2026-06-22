@@ -1,7 +1,7 @@
 public import CSwiftIDNA
 
 @nonexhaustive
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 public enum IDNAMapping: Equatable {
     @nonexhaustive
     public enum IDNA2008Status {
@@ -17,7 +17,7 @@ public enum IDNAMapping: Equatable {
     case ignored
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension IDNAMapping {
     /// Look up IDNA mapping for a given Unicode scalar
     /// - Parameter scalar: The Unicode scalar to look up

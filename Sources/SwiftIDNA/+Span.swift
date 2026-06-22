@@ -1,4 +1,4 @@
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension Span<UInt8> {
     /// Whether or not the span contains only ASCII bytes.
     @inlinable
@@ -130,7 +130,7 @@ extension Span<UInt8> {
     }
 }
 
-@available(swiftIDNAApplePlatforms 10.15, *)
+@available(SwiftStdlib 5.1, *)
 extension Span {
     /// Whether or not all the elements in the span satisfy the given predicate.
     @inlinable
