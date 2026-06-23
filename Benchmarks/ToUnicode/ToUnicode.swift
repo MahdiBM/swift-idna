@@ -46,6 +46,19 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark(
+        "To_Unicode_Lowercased_google_dot_com_Instructions",
+        configuration: .init(
+            metrics: [.instructions],
+            warmupIterations: 1,
+            maxIterations: 10,
+        )
+    ) { benchmark in
+        var domainName = "google.com"
+        domainName = try! strictConfig.toUnicode(domainName: domainName)
+        blackHole(domainName)
+    }
+
+    Benchmark(
         "To_Unicode_Lowercased_google_dot_com_CPU_8M_ICU",
         configuration: .init(
             metrics: [.cpuUser],
@@ -64,6 +77,19 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Lowercased_google_dot_com_Malloc_ICU",
         configuration: .init(
             metrics: [.mallocCountTotal],
+            warmupIterations: 1,
+            maxIterations: 10,
+        )
+    ) { benchmark in
+        var domainName = "google.com"
+        domainName = UIDNAHookICU.decode(domainName)!
+        blackHole(domainName)
+    }
+
+    Benchmark(
+        "To_Unicode_Lowercased_google_dot_com_Instructions_ICU",
+        configuration: .init(
+            metrics: [.instructions],
             warmupIterations: 1,
             maxIterations: 10,
         )
@@ -104,6 +130,19 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark(
+        "To_Unicode_Uppercased_google_dot_com_Instructions",
+        configuration: .init(
+            metrics: [.instructions],
+            warmupIterations: 1,
+            maxIterations: 10,
+        )
+    ) { benchmark in
+        var domainName = "GOOGLE.COM"
+        domainName = try! strictConfig.toUnicode(domainName: domainName)
+        blackHole(domainName)
+    }
+
+    Benchmark(
         "To_Unicode_Uppercased_google_dot_com_CPU_5M_ICU",
         configuration: .init(
             metrics: [.cpuUser],
@@ -122,6 +161,19 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Uppercased_google_dot_com_Malloc_ICU",
         configuration: .init(
             metrics: [.mallocCountTotal],
+            warmupIterations: 1,
+            maxIterations: 10,
+        )
+    ) { benchmark in
+        var domainName = "GOOGLE.COM"
+        domainName = UIDNAHookICU.decode(domainName)!
+        blackHole(domainName)
+    }
+
+    Benchmark(
+        "To_Unicode_Uppercased_google_dot_com_Instructions_ICU",
+        configuration: .init(
+            metrics: [.instructions],
             warmupIterations: 1,
             maxIterations: 10,
         )
@@ -162,6 +214,19 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark(
+        "To_Unicode_Lowercased_app-analytics-services_dot_com_Instructions",
+        configuration: .init(
+            metrics: [.instructions],
+            warmupIterations: 1,
+            maxIterations: 10,
+        )
+    ) { benchmark in
+        var domainName = "app-analytics-services.com"
+        domainName = try! strictConfig.toUnicode(domainName: domainName)
+        blackHole(domainName)
+    }
+
+    Benchmark(
         "To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_4M_ICU",
         configuration: .init(
             metrics: [.cpuUser],
@@ -180,6 +245,19 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Lowercased_app-analytics-services_dot_com_Malloc_ICU",
         configuration: .init(
             metrics: [.mallocCountTotal],
+            warmupIterations: 1,
+            maxIterations: 10,
+        )
+    ) { benchmark in
+        var domainName = "app-analytics-services.com"
+        domainName = UIDNAHookICU.decode(domainName)!
+        blackHole(domainName)
+    }
+
+    Benchmark(
+        "To_Unicode_Lowercased_app-analytics-services_dot_com_Instructions_ICU",
+        configuration: .init(
+            metrics: [.instructions],
             warmupIterations: 1,
             maxIterations: 10,
         )
@@ -220,6 +298,19 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark(
+        "To_Unicode_Uppercased_app-analytics-services_dot_com_Instructions",
+        configuration: .init(
+            metrics: [.instructions],
+            warmupIterations: 1,
+            maxIterations: 10,
+        )
+    ) { benchmark in
+        var domainName = "APP-ANALYTICS-SERVICES.COM"
+        domainName = try! strictConfig.toUnicode(domainName: domainName)
+        blackHole(domainName)
+    }
+
+    Benchmark(
         "To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_4M_ICU",
         configuration: .init(
             metrics: [.cpuUser],
@@ -238,6 +329,19 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Uppercased_app-analytics-services_dot_com_Malloc_ICU",
         configuration: .init(
             metrics: [.mallocCountTotal],
+            warmupIterations: 1,
+            maxIterations: 10,
+        )
+    ) { benchmark in
+        var domainName = "APP-ANALYTICS-SERVICES.COM"
+        domainName = UIDNAHookICU.decode(domainName)!
+        blackHole(domainName)
+    }
+
+    Benchmark(
+        "To_Unicode_Uppercased_app-analytics-services_dot_com_Instructions_ICU",
+        configuration: .init(
+            metrics: [.instructions],
             warmupIterations: 1,
             maxIterations: 10,
         )
@@ -279,6 +383,19 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(domainName)
         }
 
+        Benchmark(
+            "To_Unicode_\(namePrefix)_öob_dot_se_Instructions",
+            configuration: .init(
+                metrics: [.instructions],
+                warmupIterations: 1,
+                maxIterations: 10,
+            )
+        ) { benchmark in
+            var domainName = "xn--ob-eka.se"
+            domainName = try! idnaConfig.toUnicode(domainName: domainName)
+            blackHole(domainName)
+        }
+
         if namePrefix.lowercased() == "lax" {
             Benchmark(
                 "To_Unicode_\(namePrefix)_öob_dot_se_CPU_300K_ICU",
@@ -299,6 +416,19 @@ let benchmarks: @Sendable () -> Void = {
                 "To_Unicode_\(namePrefix)_öob_dot_se_Malloc_ICU",
                 configuration: .init(
                     metrics: [.mallocCountTotal],
+                    warmupIterations: 1,
+                    maxIterations: 10,
+                )
+            ) { benchmark in
+                var domainName = "xn--ob-eka.se"
+                domainName = UIDNAHookICU.decode(domainName)!
+                blackHole(domainName)
+            }
+
+            Benchmark(
+                "To_Unicode_\(namePrefix)_öob_dot_se_Instructions_ICU",
+                configuration: .init(
+                    metrics: [.instructions],
                     warmupIterations: 1,
                     maxIterations: 10,
                 )
@@ -340,6 +470,19 @@ let benchmarks: @Sendable () -> Void = {
             blackHole(domainName)
         }
 
+        Benchmark(
+            "To_Unicode_\(namePrefix)_生命之花_dot_中国_Instructions",
+            configuration: .init(
+                metrics: [.instructions],
+                warmupIterations: 1,
+                maxIterations: 10,
+            )
+        ) { benchmark in
+            var domainName = "xn--9iqv4mb85adml.xn--fiqs8s"
+            domainName = try! idnaConfig.toUnicode(domainName: domainName)
+            blackHole(domainName)
+        }
+
         if namePrefix.lowercased() == "lax" {
             Benchmark(
                 "To_Unicode_\(namePrefix)_生命之花_dot_中国_CPU_200K_ICU",
@@ -360,6 +503,19 @@ let benchmarks: @Sendable () -> Void = {
                 "To_Unicode_\(namePrefix)_生命之花_dot_中国_Malloc_ICU",
                 configuration: .init(
                     metrics: [.mallocCountTotal],
+                    warmupIterations: 1,
+                    maxIterations: 10,
+                )
+            ) { benchmark in
+                var domainName = "xn--9iqv4mb85adml.xn--fiqs8s"
+                domainName = UIDNAHookICU.decode(domainName)!
+                blackHole(domainName)
+            }
+
+            Benchmark(
+                "To_Unicode_\(namePrefix)_生命之花_dot_中国_Instructions_ICU",
+                configuration: .init(
+                    metrics: [.instructions],
                     warmupIterations: 1,
                     maxIterations: 10,
                 )
