@@ -321,8 +321,10 @@ extension TinyBuffer {
         @_transparent
         @inlinable
         func withSpan<T>(_ body: (Span<UInt8>) throws -> T) rethrows -> T {
-            let initialized = UnsafeBufferPointer(self.buffer.extracting(0..<self.count))
-            return try body(initialized.span)
+            let range = Range<Int>(uncheckedBounds: (0, self.count))
+            let initialized = UnsafeBufferPointer(self.buffer)
+            let span = initialized.span.extracting(unchecked: range)
+            return try body(span)
         }
 
         /// Appends the given element to the buffer.
