@@ -52,11 +52,11 @@ extension IDNA {
                             let countBehindX = idx
                             switch countBehindX {
                             case 0, 1, 2:
-                                guard unsafe processedBytesSpan[unchecked: idx] == .asciiDot else {
+                                guard processedBytesSpan[idx] == .asciiDot else {
                                     continue
                                 }
                             case 3...:
-                                let third = unsafe processedBytesSpan[unchecked: idx]
+                                let third = processedBytesSpan[idx]
                                 let second = unsafe processedBytesSpan[unchecked: idx &- 1]
                                 let first = unsafe processedBytesSpan[unchecked: idx &- 2]
                                 if !Span<UInt8>.isIDNALabelSeparator(first, second, third),
@@ -277,7 +277,7 @@ extension IDNA {
             var startIndex = 0
             for idx in newBytesSpan.indices {
                 /// Unchecked because idx comes right from `newBytesSpan.indices`
-                guard unsafe newBytesSpan[unchecked: idx] == .asciiDot else {
+                guard newBytesSpan[idx] == .asciiDot else {
                     continue
                 }
 
@@ -509,8 +509,8 @@ extension IDNA {
         case true:
             let bytesCount = span.count
             if bytesCount >= 4,
-                unsafe span[unchecked: 2] == UInt8.asciiHyphenMinus,
-                unsafe span[unchecked: 3] == UInt8.asciiHyphenMinus
+                span[2] == UInt8.asciiHyphenMinus,
+                span[3] == UInt8.asciiHyphenMinus
             {
                 errors.append(
                     .trueCheckHyphensArgumentRequiresLabelToNotContainHyphenMinusAtPostion3and4(
@@ -519,8 +519,8 @@ extension IDNA {
                 )
             }
             if bytesCount >= 1,
-                unsafe span[unchecked: 0] == UInt8.asciiHyphenMinus
-                    || span[unchecked: bytesCount - 1] == UInt8.asciiHyphenMinus
+                span[0] == UInt8.asciiHyphenMinus
+                    || span[bytesCount - 1] == UInt8.asciiHyphenMinus
             {
                 errors.append(
                     .trueCheckHyphensArgumentRequiresLabelToNotStartOrEndWithHyphenMinus(

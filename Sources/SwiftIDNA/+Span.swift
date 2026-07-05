@@ -24,10 +24,10 @@ extension Span<UInt8> {
     @inlinable
     var containsIDNADomainNameMarkerLabelPrefix: Bool {
         if self.count >= 4 {
-            if unsafe self[unchecked: 0] == UInt8.asciiLowercasedX,
-                unsafe self[unchecked: 1] == UInt8.asciiLowercasedN,
-                unsafe self[unchecked: 2] == UInt8.asciiHyphenMinus,
-                unsafe self[unchecked: 3] == UInt8.asciiHyphenMinus
+            if self[0] == UInt8.asciiLowercasedX,
+                self[1] == UInt8.asciiLowercasedN,
+                self[2] == UInt8.asciiHyphenMinus,
+                self[3] == UInt8.asciiHyphenMinus
             {
                 return true
             }
@@ -118,10 +118,10 @@ extension Span<UInt8> {
             return false
         }
 
-        if unsafe self[unchecked: 0] == UInt8.asciiLowercasedX,
-            unsafe self[unchecked: 1] == UInt8.asciiLowercasedN,
-            unsafe self[unchecked: 2] == UInt8.asciiHyphenMinus,
-            unsafe self[unchecked: 3] == UInt8.asciiHyphenMinus
+        if self[0] == UInt8.asciiLowercasedX,
+            self[1] == UInt8.asciiLowercasedN,
+            self[2] == UInt8.asciiHyphenMinus,
+            self[3] == UInt8.asciiHyphenMinus
         {
             return true
         } else {
