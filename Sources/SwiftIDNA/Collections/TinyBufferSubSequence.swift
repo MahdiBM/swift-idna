@@ -22,8 +22,8 @@ struct TinyBufferSubsequence: ~Copyable, ~Escapable {
     @inlinable
     func withSpan<T>(_ block: (Span<UInt8>) -> T) -> T {
         self.base.withSpan { span in
-            let range = Range<Int>(uncheckedBounds: (self.startIndex, self.base.count))
-            return block(span.extracting(unchecked: range))
+            let range = unsafe Range<Int>(uncheckedBounds: (self.startIndex, self.base.count))
+            return block(unsafe span.extracting(unchecked: range))
         }
     }
 

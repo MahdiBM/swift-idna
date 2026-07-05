@@ -87,7 +87,7 @@ enum Punycode {
         output.removeAll(keepingCapacity: true)
 
         for idx in inputBytesSpan.indices {
-            let byte = inputBytesSpan[unchecked: idx]
+            let byte = unsafe inputBytesSpan[unchecked: idx]
             if byte.isASCII {
                 output.append(unchecked: byte)
             }
@@ -202,8 +202,8 @@ enum Punycode {
 
         if let utf8Idx = inputBytesSpan.lastIndex(of: .asciiHyphenMinus) {
             let afterDelimiterIdx = utf8Idx &+ 1
-            let range = Range<Int>(uncheckedBounds: (0, utf8Idx))
-            let bytesSpanChunk = inputBytesSpan.extracting(unchecked: range)
+            let range = unsafe Range<Int>(uncheckedBounds: (0, utf8Idx))
+            let bytesSpanChunk = unsafe inputBytesSpan.extracting(unchecked: range)
             output.append(copying: bytesSpanChunk)
 
             guard output.isASCII else {
@@ -211,17 +211,17 @@ enum Punycode {
                 return false
             }
 
-            let inputBytesRange = Range<Int>(
+            let inputBytesRange = unsafe Range<Int>(
                 uncheckedBounds: (afterDelimiterIdx, inputBytesSpan.count)
             )
-            inputBytesSpan = inputBytesSpan.extracting(unchecked: inputBytesRange)
+            inputBytesSpan = unsafe inputBytesSpan.extracting(unchecked: inputBytesRange)
         }
 
         return unicodeScalarsIndexToUTF8Index.withRigidArrayOutputSpan {
             unicodeScalarsIndexToUTF8Index in
 
             for idx in 0..<output.count {
-                unicodeScalarsIndexToUTF8Index[unchecked: idx] = idx
+                unsafe unicodeScalarsIndexToUTF8Index[unchecked: idx] = idx
             }
             var unicodeScalarsIndexToUTF8IndexCount = output.count
 
@@ -271,17 +271,17 @@ enum Punycode {
                     return false
                 }
 
-                let scalar = Unicode.Scalar(n).unsafelyUnwrapped
+                let scalar = unsafe Unicode.Scalar(n).unsafelyUnwrapped
 
                 if i == unicodeScalarsIndexToUTF8IndexCount {
                     output.append(copying: scalar.utf8)
-                    unicodeScalarsIndexToUTF8Index[unchecked: unicodeScalarsIndexToUTF8IndexCount] =
+                    unsafe unicodeScalarsIndexToUTF8Index[unchecked: unicodeScalarsIndexToUTF8IndexCount] =
                         output.count &- 1
                     unicodeScalarsIndexToUTF8IndexCount &+= 1
                 } else {
                     let iInt = Int(i)
                     let previousIdxOfScalarInBytes =
-                        iInt == 0
+                        unsafe iInt == 0
                         ? 0
                         : unicodeScalarsIndexToUTF8Index[unchecked: iInt &- 1]
                     let insertIndex =
@@ -299,7 +299,7 @@ enum Punycode {
                     unicodeScalarsIndexToUTF8IndexCount &+= 1
 
                     for idx in (iInt &+ 1)..<unicodeScalarsIndexToUTF8IndexCount {
-                        unicodeScalarsIndexToUTF8Index[unchecked: idx] &+= utf8Count
+                        unsafe unicodeScalarsIndexToUTF8Index[unchecked: idx] &+= utf8Count
                     }
                 }
 

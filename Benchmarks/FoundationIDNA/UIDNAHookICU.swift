@@ -10,8 +10,8 @@ internal import Foundation_Private
 
 package struct UIDNAHookICU {
     // `Sendable` notes: `UIDNA` from ICU is thread safe.
-    struct UIDNAPointer: @unchecked Sendable {
-        init(_ ptr: OpaquePointer?) { self.idnaTranscoder = ptr }
+    @unsafe struct UIDNAPointer: @unchecked Sendable {
+        init(_ ptr: OpaquePointer?) { unsafe self.idnaTranscoder = ptr }
         var idnaTranscoder: OpaquePointer?
     }
 
@@ -26,14 +26,14 @@ package struct UIDNAHookICU {
                 | UIDNA_NONTRANSITIONAL_TO_ASCII
         )
         #if canImport(Darwin)
-        let encoder = _FoundationICU.uidna_openUTS46(options, &status)
+        let encoder = unsafe _FoundationICU.uidna_openUTS46(options, &status)
         #else
-        let encoder = _FoundationICU.swift_uidna_openUTS46(options, &status)
+        let encoder = unsafe _FoundationICU.swift_uidna_openUTS46(options, &status)
         #endif
         guard U_SUCCESS(status.rawValue) else {
             return nil
         }
-        return UIDNAPointer(encoder)
+        return unsafe UIDNAPointer(encoder)
     }()
 
     private static func shouldAllow(_ errors: UInt32, encodeToASCII: Bool) -> Bool {
@@ -67,7 +67,7 @@ package struct UIDNAHookICU {
             return nil
         }
 
-        guard let transcoder = idnaTranscoder else {
+        guard let transcoder = unsafe idnaTranscoder else {
             return nil
         }
 
@@ -88,7 +88,7 @@ package struct UIDNAHookICU {
             let hostBufferPtr = hostBuffer.baseAddress!
             let outBufferPtr = outBuffer.baseAddress!
 
-            let charsConverted = transcode(
+            let charsConverted = unsafe transcode(
                 transcoder.idnaTranscoder,
                 hostBufferPtr,
                 Int32(hostBuffer.count),
@@ -100,7 +100,7 @@ package struct UIDNAHookICU {
 
             if U_SUCCESS(error.rawValue), allowErrors(processingDetails.errors), charsConverted > 0
             {
-                return createString(outBufferPtr, Int(charsConverted))
+                return unsafe createString(outBufferPtr, Int(charsConverted))
             }
             return nil
         }
@@ -113,45 +113,46 @@ package struct UIDNAHookICU {
     ) -> String? {
         var transcode: TranscodingFunction<CChar>
         #if canImport(Darwin)
-        transcode = _FoundationICU.uidna_nameToUnicodeUTF8
+        unsafe transcode = _FoundationICU.uidna_nameToUnicodeUTF8
         #else
-        transcode = _FoundationICU.swift_uidna_nameToUnicodeUTF8
+        unsafe transcode = _FoundationICU.swift_uidna_nameToUnicodeUTF8
         #endif
         if encodeToASCII {
             #if canImport(Darwin)
-            transcode = _FoundationICU.uidna_nameToASCII_UTF8
+            unsafe transcode = _FoundationICU.uidna_nameToASCII_UTF8
             #else
-            transcode = _FoundationICU.swift_uidna_nameToASCII_UTF8
+            unsafe transcode = _FoundationICU.swift_uidna_nameToASCII_UTF8
             #endif
         }
-        return utf8Buffer.withMemoryRebound(to: CChar.self) { charBuffer in
-            IDNACodedHost(
+        return unsafe utf8Buffer.withMemoryRebound(to: CChar.self) { charBuffer in
+            unsafe IDNACodedHost(
                 hostBuffer: charBuffer,
                 transcode: transcode,
                 allowErrors: { errors in
                     shouldAllow(errors, encodeToASCII: encodeToASCII)
                 },
                 createString: { ptr, count in
-                    let outBuffer = UnsafeBufferPointer(start: ptr, count: count).withMemoryRebound(
-                        to: UInt8.self
-                    ) { $0 }
+                    let outBuffer = unsafe UnsafeBufferPointer(start: ptr, count: count)
+                        .withMemoryRebound(
+                            to: UInt8.self
+                        ) { unsafe $0 }
                     var hostsAreEqual = false
                     if outBuffer.count == utf8Buffer.count {
                         hostsAreEqual = true
                         for i in 0..<outBuffer.count {
-                            if utf8Buffer[i] == outBuffer[i] {
+                            if unsafe utf8Buffer[i] == outBuffer[i] {
                                 continue
                             }
-                            guard utf8Buffer[i]._lowercased == outBuffer[i] else {
+                            guard unsafe utf8Buffer[i]._lowercased == outBuffer[i] else {
                                 hostsAreEqual = false
                                 break
                             }
                         }
                     }
                     if hostsAreEqual {
-                        return String._tryFromUTF8(utf8Buffer)
+                        return unsafe String._tryFromUTF8(utf8Buffer)
                     } else {
-                        return String._tryFromUTF8(outBuffer)
+                        return unsafe String._tryFromUTF8(outBuffer)
                     }
                 }
             )
@@ -164,34 +165,34 @@ package struct UIDNAHookICU {
     ) -> String? {
         var transcode: TranscodingFunction<UInt16>
         #if canImport(Darwin)
-        transcode = _FoundationICU.uidna_nameToUnicode
+        unsafe transcode = _FoundationICU.uidna_nameToUnicode
         #else
-        transcode = _FoundationICU.swift_uidna_nameToUnicode
+        unsafe transcode = _FoundationICU.swift_uidna_nameToUnicode
         #endif
         if encodeToASCII {
             #if canImport(Darwin)
-            transcode = _FoundationICU.uidna_nameToASCII
+            unsafe transcode = _FoundationICU.uidna_nameToASCII
             #else
-            transcode = _FoundationICU.swift_uidna_nameToASCII
+            unsafe transcode = _FoundationICU.swift_uidna_nameToASCII
             #endif
         }
-        return IDNACodedHost(
+        return unsafe IDNACodedHost(
             hostBuffer: utf16Buffer,
             transcode: transcode,
             allowErrors: { errors in
                 shouldAllow(errors, encodeToASCII: encodeToASCII)
             },
             createString: { ptr, count in
-                let outBuffer = UnsafeBufferPointer(start: ptr, count: count)
+                let outBuffer = unsafe UnsafeBufferPointer(start: ptr, count: count)
                 var hostsAreEqual = false
                 if outBuffer.count == utf16Buffer.count {
                     hostsAreEqual = true
                     for i in 0..<outBuffer.count {
-                        if utf16Buffer[i] == outBuffer[i] {
+                        if unsafe utf16Buffer[i] == outBuffer[i] {
                             continue
                         }
-                        guard utf16Buffer[i] < 128,
-                            UInt8(utf16Buffer[i])._lowercased == outBuffer[i]
+                        guard unsafe utf16Buffer[i] < 128,
+                            unsafe UInt8(utf16Buffer[i])._lowercased == outBuffer[i]
                         else {
                             hostsAreEqual = false
                             break
@@ -199,9 +200,9 @@ package struct UIDNAHookICU {
                     }
                 }
                 if hostsAreEqual {
-                    return String(_utf16: utf16Buffer)
+                    return unsafe String(_utf16: utf16Buffer)
                 } else {
-                    return String(_utf16: outBuffer)
+                    return unsafe String(_utf16: outBuffer)
                 }
             }
         )
@@ -209,20 +210,20 @@ package struct UIDNAHookICU {
 
     private static func IDNACodedHost(_ host: some StringProtocol, encodeToASCII: Bool) -> String? {
         let fastResult = host.utf8.withContiguousStorageIfAvailable {
-            IDNACodedHostUTF8($0, encodeToASCII: encodeToASCII)
+            unsafe IDNACodedHostUTF8($0, encodeToASCII: encodeToASCII)
         }
         if let fastResult {
             return fastResult
         }
         #if FOUNDATION_FRAMEWORK
         if let fastCharacters = host._ns._fastCharacterContents() {
-            let charsBuffer = UnsafeBufferPointer(start: fastCharacters, count: host._ns.length)
-            return IDNACodedHostUTF16(charsBuffer, encodeToASCII: encodeToASCII)
+            let charsBuffer = unsafe UnsafeBufferPointer(start: fastCharacters, count: host._ns.length)
+            return unsafe IDNACodedHostUTF16(charsBuffer, encodeToASCII: encodeToASCII)
         }
         #endif
         var hostString = String.init(host)
         return hostString.withUTF8 {
-            IDNACodedHostUTF8($0, encodeToASCII: encodeToASCII)
+            unsafe IDNACodedHostUTF8($0, encodeToASCII: encodeToASCII)
         }
     }
 
@@ -253,13 +254,13 @@ extension String {
         let str = withUnsafeTemporaryAllocation(of: UTF8.CodeUnit.self, capacity: input.count * 3) {
             contents in
             var count = 0
-            let error = transcode(
+            let error = unsafe transcode(
                 input.makeIterator(),
                 from: UTF16.self,
                 to: UTF8.self,
                 stoppingOnError: true
             ) { codeUnit in
-                contents[count] = codeUnit
+                unsafe contents[count] = codeUnit
                 count += 1
             }
 
@@ -267,7 +268,7 @@ extension String {
                 return nil as String?
             }
 
-            return String._tryFromUTF8(UnsafeBufferPointer(rebasing: contents[..<count]))
+            return unsafe String._tryFromUTF8(UnsafeBufferPointer(rebasing: contents[..<count]))
         }
 
         guard let str else {

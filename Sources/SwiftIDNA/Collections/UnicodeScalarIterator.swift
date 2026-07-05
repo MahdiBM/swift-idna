@@ -20,10 +20,10 @@ struct UnicodeScalarIterator {
     ) -> (codePoint: Unicode.Scalar, range: Range<Int>)? {
         guard self.currentCodeUnitOffset < bytes.count else { return nil }
 
-        let firstByte = bytes[unchecked: self.currentCodeUnitOffset]
+        let firstByte = unsafe bytes[unchecked: self.currentCodeUnitOffset]
 
         if firstByte.isASCII {
-            let range = Range<Int>(
+            let range = unsafe Range<Int>(
                 uncheckedBounds: (self.currentCodeUnitOffset, self.currentCodeUnitOffset &+ 1)
             )
             self.currentCodeUnitOffset = range.upperBound
@@ -33,13 +33,13 @@ struct UnicodeScalarIterator {
         let scalarLength = (~firstByte).leadingZeroBitCount
 
         var encodedScalar = UTF8.EncodedScalar()
-        let range = Range<Int>(
+        let range = unsafe Range<Int>(
             uncheckedBounds: (
                 self.currentCodeUnitOffset, self.currentCodeUnitOffset &+ scalarLength
             )
         )
         for idx in range {
-            encodedScalar.append(bytes[unchecked: idx])
+            unsafe encodedScalar.append(bytes[unchecked: idx])
         }
 
         let scalar = UTF8.decode(encodedScalar)

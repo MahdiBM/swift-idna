@@ -26,17 +26,17 @@ extension IDNAMapping {
     public static func `for`(scalar: Unicode.Scalar) -> IDNAMapping {
         /// `unsafelyUnwrapped` because the C function is guaranteed to return a non-nil pointer.
         /// There are also extensive tests in IDNATests for this function.
-        let result = cswift_idna_mapping_lookup(scalar.value).unsafelyUnwrapped.pointee
-        switch result.type {
+        let result = unsafe cswift_idna_mapping_lookup(scalar.value).unsafelyUnwrapped.pointee
+        switch unsafe result.type {
         case 0:
             let status: IDNAMapping.IDNA2008Status =
-                switch result.status {
+                switch unsafe result.status {
                 case 0: .NV8
                 case 1: .XV8
                 case 2: .none
                 default:
                     fatalError(
-                        "Unexpected IDNAMapping.CSwiftIDNA2008Status: \(result.status) for type \(result.type)"
+                        "Unexpected IDNAMapping.CSwiftIDNA2008Status: \(unsafe result.status) for type \(unsafe result.type)"
                     )
                 }
             return .valid(status)
@@ -44,7 +44,7 @@ extension IDNAMapping {
             /// These are guaranteed to be valid Unicode scalars.
             /// We wrap these in a view-like type (IDNAUnicodeScalarView) to ensure we don't need
             /// allocations while having a way to guarantee they are valid Unicode scalars to users.
-            let scalars = IDNAUnicodeScalarView(
+            let scalars = unsafe IDNAUnicodeScalarView(
                 staticPointer: UnsafeBufferPointer(
                     start: result.mapped_utf8_bytes,
                     count: Int(result.mapped_byte_count)
@@ -55,7 +55,7 @@ extension IDNAMapping {
             /// These are guaranteed to be valid Unicode scalars.
             /// We wrap these in a view-like type (IDNAUnicodeScalarView) to ensure we don't need
             /// allocations while having a way to guarantee they are valid Unicode scalars to users.
-            let scalars = IDNAUnicodeScalarView(
+            let scalars = unsafe IDNAUnicodeScalarView(
                 staticPointer: UnsafeBufferPointer(
                     start: result.mapped_utf8_bytes,
                     count: Int(result.mapped_byte_count)
@@ -67,7 +67,7 @@ extension IDNAMapping {
         case 4:
             return .ignored
         default:
-            fatalError("Unexpected CSwiftIDNAMappingResultType: \(result.type)")
+            fatalError("Unexpected CSwiftIDNAMappingResultType: \(unsafe result.type)")
         }
     }
 }

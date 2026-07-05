@@ -3,10 +3,10 @@ extension Array where Element: BitwiseCopyable {
     /// Initializes an `Array` by copying the given span.
     @inlinable
     init(copying span: Span<Element>) {
-        self.init(unsafeUninitializedCapacity: span.count) { buffer, initializedCount in
+        unsafe self.init(unsafeUninitializedCapacity: span.count) { buffer, initializedCount in
             span.withUnsafeBytes { spanPtr in
                 let rawBuffer = UnsafeMutableRawBufferPointer(buffer)
-                rawBuffer.copyMemory(from: spanPtr)
+                unsafe rawBuffer.copyMemory(from: spanPtr)
             }
             initializedCount = span.count
         }
