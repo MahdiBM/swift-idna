@@ -52,13 +52,13 @@ extension IDNA {
                             let countBehindX = idx
                             switch countBehindX {
                             case 0, 1, 2:
-                                guard processedBytesSpan[unchecked: idx] == .asciiDot else {
+                                guard processedBytesSpan[idx] == .asciiDot else {
                                     continue
                                 }
                             case 3...:
-                                let third = processedBytesSpan[unchecked: idx]
-                                let second = processedBytesSpan[unchecked: idx &- 1]
-                                let first = processedBytesSpan[unchecked: idx &- 2]
+                                let third = processedBytesSpan[idx]
+                                let second = unsafe processedBytesSpan[unchecked: idx &- 1]
+                                let first = unsafe processedBytesSpan[unchecked: idx &- 2]
                                 if !Span<UInt8>.isIDNALabelSeparator(first, second, third),
                                     third != .asciiDot
                                 {
@@ -143,8 +143,8 @@ extension IDNA {
         decodedUnicodeScalars: inout DecodedUnicodeScalars.Subsequence,
         errors: inout MappingErrors
     ) {
-        let range = Range<Int>(uncheckedBounds: (startIndex, endIndex))
-        let labelSpan = bytesSpan.extracting(unchecked: range)
+        let range = unsafe Range<Int>(uncheckedBounds: (startIndex, endIndex))
+        let labelSpan = unsafe bytesSpan.extracting(unchecked: range)
         var labelByteLength = 0
         if labelSpan.isASCII {
             labelByteLength = labelSpan.count
@@ -277,12 +277,12 @@ extension IDNA {
             var startIndex = 0
             for idx in newBytesSpan.indices {
                 /// Unchecked because idx comes right from `newBytesSpan.indices`
-                guard newBytesSpan[unchecked: idx] == .asciiDot else {
+                guard newBytesSpan[idx] == .asciiDot else {
                     continue
                 }
 
-                let range = Range<Int>(uncheckedBounds: (startIndex, idx))
-                let chunk = newBytesSpan.extracting(unchecked: range)
+                let range = unsafe Range<Int>(uncheckedBounds: (startIndex, idx))
+                let chunk = unsafe newBytesSpan.extracting(unchecked: range)
 
                 if convertAndValidateLabel(
                     chunk,
@@ -296,8 +296,8 @@ extension IDNA {
                 startIndex = idx &+ 1
             }
 
-            let range = Range<Int>(uncheckedBounds: (startIndex, newBytesSpan.count))
-            let chunk = newBytesSpan.extracting(unchecked: range)
+            let range = unsafe Range<Int>(uncheckedBounds: (startIndex, newBytesSpan.count))
+            let chunk = unsafe newBytesSpan.extracting(unchecked: range)
             _ = convertAndValidateLabel(
                 chunk,
                 scalarsIndexToUTF8IndexForReuse: &scalarsIndexToUTF8IndexForReuse,
@@ -340,7 +340,7 @@ extension IDNA {
             while let (scalar, range) = unicodeScalarsIterator.nextWithRange(in: span) {
                 switch IDNAMapping.for(scalar: scalar) {
                 case .valid(_), .deviation(_), .disallowed:
-                    let scalarBytesSpan = span.extracting(unchecked: range)
+                    let scalarBytesSpan = unsafe span.extracting(unchecked: range)
                     output.swift_idna_append(copying: scalarBytesSpan)
                 case .mapped(let mappedScalars):
                     output.swift_idna_append(copying: mappedScalars.utf8BytesSpan)
@@ -360,7 +360,7 @@ extension IDNA {
 
         for idx in span.indices {
             /// Unchecked because idx comes right from `newBytesSpan.indices`
-            guard span[unchecked: idx] == .asciiDot else {
+            guard span[idx] == .asciiDot else {
                 continue
             }
 
@@ -412,7 +412,7 @@ extension IDNA {
         /// If conversion fails, and we're not ignoring invalid punycode, record an error
 
         /// Drop the "xn--" prefix
-        let noXNRange = Range<Int>(uncheckedBounds: (4, span.count))
+        let noXNRange = unsafe Range<Int>(uncheckedBounds: (4, span.count))
         let currentNewerBytesCount = newerBytes.count
 
         var outputBuffer = TinyBufferSubsequence(
@@ -420,18 +420,18 @@ extension IDNA {
             startIndex: currentNewerBytesCount
         )
         if Punycode.decode(
-            _uncheckedAssumingValidUTF8: span.extracting(unchecked: noXNRange),
+            _uncheckedAssumingValidUTF8: unsafe span.extracting(unchecked: noXNRange),
             scalarsIndexToUTF8IndexForReuse: &scalarsIndexToUTF8IndexForReuse,
             outputBuffer: &outputBuffer
         ) {
             newerBytes = outputBuffer.base
 
-            let range = Range<Int>(
+            let range = unsafe Range<Int>(
                 uncheckedBounds: (currentNewerBytesCount, newerBytes.count)
             )
 
             newerBytes.withSpan { newerBytesSpan in
-                let conversionSpan = newerBytesSpan.extracting(unchecked: range)
+                let conversionSpan = unsafe newerBytesSpan.extracting(unchecked: range)
 
                 /// 4.3:
                 checkInvalidPunycode(span: conversionSpan, errors: &errors)
@@ -509,8 +509,8 @@ extension IDNA {
         case true:
             let bytesCount = span.count
             if bytesCount >= 4,
-                span[unchecked: 2] == UInt8.asciiHyphenMinus,
-                span[unchecked: 3] == UInt8.asciiHyphenMinus
+                span[2] == UInt8.asciiHyphenMinus,
+                span[3] == UInt8.asciiHyphenMinus
             {
                 errors.append(
                     .trueCheckHyphensArgumentRequiresLabelToNotContainHyphenMinusAtPostion3and4(
@@ -519,8 +519,8 @@ extension IDNA {
                 )
             }
             if bytesCount >= 1,
-                span[unchecked: 0] == UInt8.asciiHyphenMinus
-                    || span[unchecked: bytesCount - 1] == UInt8.asciiHyphenMinus
+                span[0] == UInt8.asciiHyphenMinus
+                    || span[bytesCount - 1] == UInt8.asciiHyphenMinus
             {
                 errors.append(
                     .trueCheckHyphensArgumentRequiresLabelToNotStartOrEndWithHyphenMinus(
@@ -597,9 +597,9 @@ extension IDNA {
     @usableFromInline
     func convertToLowercasedASCII(_uncheckedAssumingValidUTF8 span: Span<UInt8>) -> String {
         let count = span.count
-        return String(unsafeUninitializedCapacity_Compatibility: count) { buffer in
+        return unsafe String(unsafeUninitializedCapacity_Compatibility: count) { buffer in
             for idx in 0..<count {
-                buffer[idx] = span[unchecked: idx].toLowercasedASCIILetter()
+                unsafe buffer[idx] = span[unchecked: idx].toLowercasedASCIILetter()
             }
             return count
         }

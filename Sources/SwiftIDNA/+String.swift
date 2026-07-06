@@ -14,7 +14,7 @@ extension String {
             self._withNFCCodeUnits { utf8Byte in
                 if !isInNFC { return }
 
-                if currentCount <= idx || utf8Byte != span[unchecked: idx] {
+                if unsafe currentCount <= idx || utf8Byte != span[unchecked: idx] {
                     isInNFC = false
                     return
                 }
@@ -30,23 +30,23 @@ extension String {
     @usableFromInline
     init(_uncheckedAssumingValidUTF8 span: Span<UInt8>) {
         if #available(SwiftStdlib 6.2, *) {
-            let utf8Span = UTF8Span(unchecked: span)
+            let utf8Span = unsafe UTF8Span(unchecked: span)
             self.init(copying: utf8Span)
         } else if #available(SwiftStdlib 5.3, *) {
             self.init(unsafeUninitializedCapacity: span.count) { buffer in
                 span.withUnsafeBytes { spanPtr in
                     let rawBuffer = UnsafeMutableRawBufferPointer(buffer)
-                    rawBuffer.copyMemory(from: spanPtr)
+                    unsafe rawBuffer.copyMemory(from: spanPtr)
                 }
                 return span.count
             }
         } else {
-            let array = [UInt8].init(
+            let array = unsafe [UInt8].init(
                 unsafeUninitializedCapacity: span.count
             ) { buffer, initializedCount in
                 span.withUnsafeBytes { spanPtr in
                     let rawBuffer = UnsafeMutableRawBufferPointer(buffer)
-                    rawBuffer.copyMemory(from: spanPtr)
+                    unsafe rawBuffer.copyMemory(from: spanPtr)
                 }
                 initializedCount = span.count
             }
@@ -62,7 +62,7 @@ extension String {
     ) throws(E) -> T {
         do {
             if let fastResult = try self.utf8.withContiguousStorageIfAvailable({
-                try body($0.span)
+                try body(unsafe $0.span)
             }) {
                 return fastResult
             }
@@ -78,7 +78,7 @@ extension String {
 
         do {
             return try self.withUTF8 {
-                try body($0.span)
+                try body(unsafe $0.span)
             }
         } catch let error as E {
             throw error
@@ -106,13 +106,13 @@ extension String {
     ) rethrows {
         if #available(SwiftStdlib 5.3, *) {
             try self.init(unsafeUninitializedCapacity: capacity) { buffer in
-                try initializer(buffer)
+                unsafe try initializer(buffer)
             }
         } else {
-            let array = try [UInt8].init(
+            let array = unsafe try [UInt8].init(
                 unsafeUninitializedCapacity: capacity
             ) { buffer, initializedCount in
-                initializedCount = try initializer(buffer)
+                initializedCount = unsafe try initializer(buffer)
             }
             self.init(decoding: array, as: UTF8.self)
         }
@@ -144,8 +144,8 @@ extension Substring {
         _ body: (Span<UInt8>) throws(E) -> T
     ) throws(E) -> T {
         do {
-            if let fastResult = try self.utf8.withContiguousStorageIfAvailable({
-                try body($0.span)
+            if let fastResult = unsafe try self.utf8.withContiguousStorageIfAvailable({
+                try body(unsafe $0.span)
             }) {
                 return fastResult
             }
@@ -161,7 +161,7 @@ extension Substring {
 
         do {
             return try self.withUTF8 {
-                try body($0.span)
+                try body(unsafe $0.span)
             }
         } catch let error as E {
             throw error

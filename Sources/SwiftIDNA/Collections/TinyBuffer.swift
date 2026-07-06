@@ -269,7 +269,7 @@ extension TinyBuffer {
     /// Some bytes held in a inline stack allocation, alongside their count.
     /// Currently holds up to 24 bytes.
     @usableFromInline
-    struct InlineElements: ~Copyable, ~Escapable {
+    @safe struct InlineElements: ~Copyable, ~Escapable {
         @usableFromInline
         var buffer: UnsafeMutableBufferPointer<UInt8>
         @usableFromInline
@@ -284,7 +284,7 @@ extension TinyBuffer {
         @inlinable
         @_lifetime(borrow buffer)
         init(buffer: UnsafeMutableBufferPointer<UInt8>, count: Int) {
-            self.buffer = buffer
+            unsafe self.buffer = buffer
             self.count = count
         }
 
@@ -301,7 +301,7 @@ extension TinyBuffer {
                 of: UInt8.self,
                 capacity: Self.maximumCapacity
             ) { alloc throws(Failure) -> R in
-                try body(InlineElements(buffer: alloc, count: 0))
+                try body(unsafe InlineElements(buffer: alloc, count: 0))
             }
         }
 
@@ -321,9 +321,9 @@ extension TinyBuffer {
         @_transparent
         @inlinable
         func withSpan<T>(_ body: (Span<UInt8>) throws -> T) rethrows -> T {
-            let range = Range<Int>(uncheckedBounds: (0, self.count))
-            let initialized = UnsafeBufferPointer(self.buffer)
-            let span = initialized.span.extracting(unchecked: range)
+            let range = unsafe Range<Int>(uncheckedBounds: (0, self.count))
+            let initialized = unsafe UnsafeBufferPointer(self.buffer)
+            let span = unsafe initialized.span.extracting(unchecked: range)
             return try body(span)
         }
 
@@ -331,7 +331,7 @@ extension TinyBuffer {
         /// Assumes the buffer has enough capacity to hold the element.
         @inlinable
         mutating func append(unchecked element: UInt8) {
-            self.buffer.initializeElement(at: self.count, to: element)
+            unsafe self.buffer.initializeElement(at: self.count, to: element)
             self.count &+= 1
         }
 
@@ -344,11 +344,11 @@ extension TinyBuffer {
         /// Gives access to the underlying buffer as an `OutputSpan<UInt8>`.
         @inlinable
         mutating func edit(_ block: (inout OutputSpan<UInt8>) -> Void) {
-            var span = OutputSpan(buffer: self.buffer, initializedCount: self.count)
+            var span = unsafe OutputSpan(buffer: self.buffer, initializedCount: self.count)
 
             block(&span)
 
-            let newCount = span.finalize(for: self.buffer)
+            let newCount = unsafe span.finalize(for: self.buffer)
             span = OutputSpan()
             self.count = newCount
         }
@@ -366,25 +366,25 @@ extension TinyBuffer {
             assert(utf8ViewCount != 0)
             assert(newCount <= InlineElements.maximumCapacity)
 
-            let targetRange = Range<Int>(uncheckedBounds: (index, index &+ utf8ViewCount))
-            let target = self.buffer.extracting(targetRange)
+            let targetRange = unsafe Range<Int>(uncheckedBounds: (index, index &+ utf8ViewCount))
+            let target = unsafe self.buffer.extracting(targetRange)
 
             if targetRange.lowerBound <= usedCapacity {
-                let moveRange = Range<Int>(uncheckedBounds: (index, usedCapacity))
-                let moveBytes = self.buffer.extracting(moveRange)
+                let moveRange = unsafe Range<Int>(uncheckedBounds: (index, usedCapacity))
+                let moveBytes = unsafe self.buffer.extracting(moveRange)
 
-                let afterRange = Range<Int>(
+                let afterRange = unsafe Range<Int>(
                     uncheckedBounds: (
                         targetRange.upperBound,
                         targetRange.upperBound &+ moveBytes.count
                     )
                 )
-                let afterBytes = self.buffer.extracting(afterRange)
+                let afterBytes = unsafe self.buffer.extracting(afterRange)
 
-                _ = afterBytes.moveInitialize(fromContentsOf: moveBytes)
+                _ = unsafe afterBytes.moveInitialize(fromContentsOf: moveBytes)
             }
 
-            _ = target.initialize(fromContentsOf: utf8View)
+            _ = unsafe target.initialize(fromContentsOf: utf8View)
 
             self.count = newCount
         }

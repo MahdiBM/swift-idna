@@ -3,7 +3,7 @@ import FoundationIDNA
 import SwiftIDNA
 
 let benchmarks: @Sendable () -> Void = {
-    Benchmark.defaultConfiguration.maxDuration = .seconds(6)
+    unsafe Benchmark.defaultConfiguration.maxDuration = .seconds(6)
 
     let strictConfig = IDNA(configuration: .mostStrict)
     let laxConfig = IDNA(configuration: .mostLax)

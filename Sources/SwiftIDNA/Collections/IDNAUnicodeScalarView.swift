@@ -19,13 +19,13 @@ import Darwin
 /// Unchecked `Sendable` because the pointer is guaranteed to be valid for the duration of the program execution.
 /// That's also why we don't try to deallocate.
 @available(SwiftStdlib 5.1, *)
-public struct IDNAUnicodeScalarView: SendableMetatype, @unchecked Sendable {
+@safe public struct IDNAUnicodeScalarView: SendableMetatype, @unchecked Sendable {
     @usableFromInline
     let pointer: UnsafeBufferPointer<UInt8>
 
     @inlinable
     init(staticPointer: UnsafeBufferPointer<UInt8>) {
-        self.pointer = staticPointer
+        unsafe self.pointer = staticPointer
     }
 }
 
@@ -33,9 +33,9 @@ public struct IDNAUnicodeScalarView: SendableMetatype, @unchecked Sendable {
 @available(SwiftStdlib 5.1, *)
 extension IDNAUnicodeScalarView: Equatable {
     public static func == (lhs: IDNAUnicodeScalarView, rhs: IDNAUnicodeScalarView) -> Bool {
-        if lhs.pointer.count != rhs.pointer.count { return false }
-        if lhs.pointer.count == 0 { return true }
-        return memcmp(
+        if unsafe lhs.pointer.count != rhs.pointer.count { return false }
+        if unsafe lhs.pointer.count == 0 { return true }
+        return unsafe memcmp(
             /// If the count is non-zero then the `UnsafeBufferPointer` guarantees there is a non-nil pointer.
             lhs.pointer.baseAddress.unsafelyUnwrapped,
             rhs.pointer.baseAddress.unsafelyUnwrapped,
@@ -60,7 +60,7 @@ extension IDNAUnicodeScalarView: Sequence {
     public var count: Int {
         var iterator = UnicodeScalarIterator()
         var scalarsCount = 0
-        while iterator.next(in: self.pointer.span) != nil {
+        while unsafe iterator.next(in: self.pointer.span) != nil {
             scalarsCount &+= 1
         }
         return scalarsCount
@@ -69,21 +69,21 @@ extension IDNAUnicodeScalarView: Sequence {
     /// Count of the bytes in this view.
     @inlinable
     public var utf8BytesCount: Int {
-        self.pointer.count
+        unsafe self.pointer.count
     }
 
     @inlinable
     public var isEmpty: Bool {
-        self.pointer.count == 0
+        unsafe self.pointer.count == 0
     }
 
     @inlinable
     public var first: Unicode.Scalar? {
-        guard self.pointer.count > 0 else {
+        guard unsafe self.pointer.count > 0 else {
             return nil
         }
         var iterator = UnicodeScalarIterator()
-        return iterator.next(in: self.pointer.span)
+        return unsafe iterator.next(in: self.pointer.span)
     }
 
     @inlinable
@@ -104,7 +104,7 @@ extension IDNAUnicodeScalarView: Sequence {
     /// Span of the raw utf8 bytes in this view.
     @inlinable
     public var utf8BytesSpan: Span<UInt8> {
-        self.pointer.span
+        unsafe self.pointer.span
     }
 
     @inlinable
@@ -126,7 +126,7 @@ extension IDNAUnicodeScalarView: Sequence {
 
         @inlinable
         public mutating func next() -> Unicode.Scalar? {
-            self.iterator.next(in: self.base.pointer.span)
+            unsafe self.iterator.next(in: self.base.pointer.span)
         }
     }
 }
@@ -142,7 +142,7 @@ extension IDNAUnicodeScalarView: CustomStringConvertible {
         let lastIdx = elementsCount &- 1
         for idx in self.indices {
             /// If the count is non-zero then the `UnsafeBufferPointer` guarantees there is a non-nil pointer.
-            let value = self.pointer.baseAddress.unsafelyUnwrapped.advanced(by: idx).pointee
+            let value = unsafe self.pointer.baseAddress.unsafelyUnwrapped.advanced(by: idx).pointee
             result.append("0x\(String(value, radix: 16, uppercase: true))")
             if idx != lastIdx {
                 result.append(", ")
@@ -159,13 +159,13 @@ extension IDNAUnicodeScalarView: CustomDebugStringConvertible {
     @inlinable
     public var debugDescription: String {
         var result =
-            "IDNAUnicodeScalarView(pointer: \(self.pointer.debugDescription), count: \(self.count), elements: ["
+            unsafe "IDNAUnicodeScalarView(pointer: \(self.pointer.debugDescription), count: \(self.count), elements: ["
         let elementsCount = self.count
         result.reserveCapacity(result.count + elementsCount * 6 + 2)
         let lastIdx = elementsCount &- 1
         for idx in self.indices {
             /// If the count is non-zero then the `UnsafeBufferPointer` guarantees there is a non-nil pointer.
-            let value = self.pointer.baseAddress.unsafelyUnwrapped.advanced(by: idx).pointee
+            let value = unsafe self.pointer.baseAddress.unsafelyUnwrapped.advanced(by: idx).pointee
             result.append("0x\(String(value, radix: 16, uppercase: true))")
             if idx != lastIdx {
                 result.append(", ")

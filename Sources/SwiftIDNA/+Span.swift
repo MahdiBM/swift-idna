@@ -4,10 +4,9 @@ extension Span<UInt8> {
     @inlinable
     var isASCII: Bool {
         var result: Element = 0
-        /// The compiler will use SIMD instructions to perform the bitwise operations below,
-        /// which will speed up the process.
+        /// This loop is usually auto-vectorized into SIMD instructions by LLVM.
         for idx in self.indices {
-            result |= self[unchecked: idx]
+            result |= self[idx]
         }
         return result <= 0x7F
     }
@@ -24,10 +23,10 @@ extension Span<UInt8> {
     @inlinable
     var containsIDNADomainNameMarkerLabelPrefix: Bool {
         if self.count >= 4 {
-            if self[unchecked: 0] == UInt8.asciiLowercasedX,
-                self[unchecked: 1] == UInt8.asciiLowercasedN,
-                self[unchecked: 2] == UInt8.asciiHyphenMinus,
-                self[unchecked: 3] == UInt8.asciiHyphenMinus
+            if self[0] == UInt8.asciiLowercasedX,
+                self[1] == UInt8.asciiLowercasedN,
+                self[2] == UInt8.asciiHyphenMinus,
+                self[3] == UInt8.asciiHyphenMinus
             {
                 return true
             }
@@ -47,17 +46,17 @@ extension Span<UInt8> {
                 /// The whole domain starts with "xn--"
                 return true
             case 1, 2:
-                let before = self[unchecked: idxOfX &- 1]
+                let before = unsafe self[unchecked: idxOfX &- 1]
                 if before.isIDNALabelSeparator {
                     return true
                 }
             case 3...:
-                let third = self[unchecked: idxOfX &- 1]
+                let third = unsafe self[unchecked: idxOfX &- 1]
                 if third.isIDNALabelSeparator {
                     return true
                 }
-                let second = self[unchecked: idxOfX &- 2]
-                let first = self[unchecked: idxOfX &- 3]
+                let second = unsafe self[unchecked: idxOfX &- 2]
+                let first = unsafe self[unchecked: idxOfX &- 3]
                 if Span<UInt8>.isIDNALabelSeparator(first, second, third) {
                     return true
                 }
@@ -77,10 +76,10 @@ extension Span<UInt8> {
         where predicate: (_ firstMarkerIndex: Int) -> Bool
     ) -> Bool {
         for idx in self.indices.dropLast(3) {
-            if self[unchecked: idx] == UInt8.asciiLowercasedX,
-                self[unchecked: idx + 1] == UInt8.asciiLowercasedN,
-                self[unchecked: idx + 2] == UInt8.asciiHyphenMinus,
-                self[unchecked: idx + 3] == UInt8.asciiHyphenMinus
+            if unsafe self[unchecked: idx] == UInt8.asciiLowercasedX,
+                unsafe self[unchecked: idx + 1] == UInt8.asciiLowercasedN,
+                unsafe self[unchecked: idx + 2] == UInt8.asciiHyphenMinus,
+                unsafe self[unchecked: idx + 3] == UInt8.asciiHyphenMinus
             {
                 if predicate(idx) {
                     return true
@@ -118,10 +117,10 @@ extension Span<UInt8> {
             return false
         }
 
-        if self[unchecked: 0] == UInt8.asciiLowercasedX,
-            self[unchecked: 1] == UInt8.asciiLowercasedN,
-            self[unchecked: 2] == UInt8.asciiHyphenMinus,
-            self[unchecked: 3] == UInt8.asciiHyphenMinus
+        if self[0] == UInt8.asciiLowercasedX,
+            self[1] == UInt8.asciiLowercasedN,
+            self[2] == UInt8.asciiHyphenMinus,
+            self[3] == UInt8.asciiHyphenMinus
         {
             return true
         } else {
@@ -136,7 +135,7 @@ extension Span {
     @inlinable
     func allSatisfy(_ predicate: (Element) -> Bool) -> Bool {
         for idx in self.indices {
-            if !predicate(self[unchecked: idx]) {
+            if !predicate(self[idx]) {
                 return false
             }
         }
@@ -149,7 +148,7 @@ extension Span {
         let endIndex = self.count &- 1
         for idx in self.indices {
             let backwardsIdx = endIndex &- idx
-            if self[unchecked: backwardsIdx] == element {
+            if unsafe self[unchecked: backwardsIdx] == element {
                 return backwardsIdx
             }
         }

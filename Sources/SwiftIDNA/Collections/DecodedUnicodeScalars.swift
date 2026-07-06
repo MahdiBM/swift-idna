@@ -71,7 +71,7 @@ extension DecodedUnicodeScalars {
                 self.startIndex = 0
             } else {
                 for idx in self.endIndex..<scalarsCount {
-                    let scalar = self.scalars[unchecked: idx]
+                    let scalar = unsafe self.scalars[unchecked: idx]
                     byteOffset &+= scalar.utf8.count
                     if byteOffset == range.lowerBound {
                         self.startIndex = idx &+ 1
@@ -81,7 +81,7 @@ extension DecodedUnicodeScalars {
             }
 
             for idx in self.startIndex..<scalarsCount {
-                let scalar = self.scalars[unchecked: idx]
+                let scalar = unsafe self.scalars[unchecked: idx]
                 byteOffset &+= scalar.utf8.count
                 if byteOffset == range.upperBound {
                     self.endIndex = idx &+ 1
@@ -97,7 +97,7 @@ extension DecodedUnicodeScalars {
             /// This assert is to trap in tests for the most part.
             /// That's why it's not a precondition.
             assert(self.endIndex > index, "Index out of bounds")
-            return self.scalars[unchecked: self.startIndex &+ index]
+            return unsafe self.scalars[unchecked: self.startIndex &+ index]
         }
     }
 }

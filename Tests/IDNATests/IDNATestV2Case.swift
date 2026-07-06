@@ -68,26 +68,26 @@ struct IDNATestV2Case {
     }
 
     init(from cCase: CSwiftIDNATestV2CCase) {
-        self.source = String(cString: cCase.source)
-        self.toUnicode = cCase.toUnicode.map(String.init(cString:))
-        self.toAsciiN = cCase.toAsciiN.map(String.init(cString:))
-        self.toUnicodeStatus = Array(
+        self.source = unsafe String(cString: cCase.source)
+        self.toUnicode = unsafe cCase.toUnicode.map(String.init(cString:))
+        self.toAsciiN = unsafe cCase.toAsciiN.map(String.init(cString:))
+        self.toUnicodeStatus = unsafe Array(
             UnsafeBufferPointer(
                 start: cCase.toUnicodeStatus!,
                 count: Int(cCase.toUnicodeStatusCount)
             )
         ).map {
-            String(cString: $0!)
+            unsafe String(cString: $0!)
         }.map {
             Status(rawValue: $0)!
         }
-        self.toAsciiNStatus = Array(
+        self.toAsciiNStatus = unsafe Array(
             UnsafeBufferPointer(
                 start: cCase.toAsciiNStatus!,
                 count: Int(cCase.toAsciiNStatusCount)
             )
         ).map {
-            String(cString: $0!)
+            unsafe String(cString: $0!)
         }.map {
             Status(rawValue: $0)!
         }
@@ -95,10 +95,10 @@ struct IDNATestV2Case {
 
     static func allCases() -> [IDNATestV2Case] {
         var count: Int = 0
-        guard let ptr = cswift_idna_test_v2_all_cases(&count) else {
+        guard let ptr = unsafe cswift_idna_test_v2_all_cases(&count) else {
             fatalError("Failed to get IDNA Test V2 cases")
         }
-        let allUnicodeCases = (0..<count).map { i in IDNATestV2Case(from: ptr[i]) }
+        let allUnicodeCases = (0..<count).map { i in unsafe IDNATestV2Case(from: ptr[i]) }
         let massiveASCII = massivePunyCodeStrings.ascii
         let massiveUnicode = massivePunyCodeStrings.unicode
         let asciiString =
