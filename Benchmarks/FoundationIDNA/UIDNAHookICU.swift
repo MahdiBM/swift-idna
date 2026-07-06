@@ -217,7 +217,10 @@ package struct UIDNAHookICU {
         }
         #if FOUNDATION_FRAMEWORK
         if let fastCharacters = host._ns._fastCharacterContents() {
-            let charsBuffer = unsafe UnsafeBufferPointer(start: fastCharacters, count: host._ns.length)
+            let charsBuffer = unsafe UnsafeBufferPointer(
+                start: fastCharacters,
+                count: host._ns.length
+            )
             return unsafe IDNACodedHostUTF16(charsBuffer, encodeToASCII: encodeToASCII)
         }
         #endif

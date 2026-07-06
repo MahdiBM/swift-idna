@@ -275,7 +275,9 @@ enum Punycode {
 
                 if i == unicodeScalarsIndexToUTF8IndexCount {
                     output.append(copying: scalar.utf8)
-                    unsafe unicodeScalarsIndexToUTF8Index[unchecked: unicodeScalarsIndexToUTF8IndexCount] =
+                    unsafe unicodeScalarsIndexToUTF8Index[
+                        unchecked: unicodeScalarsIndexToUTF8IndexCount
+                    ] =
                         output.count &- 1
                     unicodeScalarsIndexToUTF8IndexCount &+= 1
                 } else {

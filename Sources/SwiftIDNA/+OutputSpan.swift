@@ -28,7 +28,9 @@ extension OutputSpan where Element: BinaryInteger {
             if index < usedCapacity {
                 let sourceRange = unsafe Range<Int>(uncheckedBounds: (index, usedCapacity))
                 let source = buffer.extracting(sourceRange)
-                let targetRange = unsafe Range<Int>(uncheckedBounds: (index &+ 1, usedCapacity &+ 1))
+                let targetRange = unsafe Range<Int>(
+                    uncheckedBounds: (index &+ 1, usedCapacity &+ 1)
+                )
                 let target = buffer.extracting(targetRange)
                 let last = unsafe target.moveInitialize(fromContentsOf: source)
                 assert(last == target.endIndex)
