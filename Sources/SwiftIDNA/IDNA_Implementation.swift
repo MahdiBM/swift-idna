@@ -360,7 +360,7 @@ extension IDNA {
 
         for idx in span.indices {
             /// Unchecked because idx comes right from `newBytesSpan.indices`
-            guard unsafe span[unchecked: idx] == .asciiDot else {
+            guard span[idx] == .asciiDot else {
                 continue
             }
 

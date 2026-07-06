@@ -87,7 +87,7 @@ enum Punycode {
         output.removeAll(keepingCapacity: true)
 
         for idx in inputBytesSpan.indices {
-            let byte = unsafe inputBytesSpan[unchecked: idx]
+            let byte = inputBytesSpan[idx]
             if byte.isASCII {
                 output.append(unchecked: byte)
             }

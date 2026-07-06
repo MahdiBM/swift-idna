@@ -23,7 +23,7 @@ extension IDNA {
         var isASCII_Number: UInt8 = 0
         var forSureContainsLowercasedOnly_Number: UInt8 = 0
         for idx in span.indices {
-            let byte = unsafe span[unchecked: idx]
+            let byte = span[idx]
             isASCII_Number |= byte
             forSureContainsLowercasedOnly_Number &= byte
         }
@@ -45,7 +45,7 @@ extension IDNA {
         }
 
         for idx in span.indices {
-            let byte = unsafe span[unchecked: idx]
+            let byte = span[idx]
             /// Based on IDNA, all ASCII characters other than uppercased letters are 'valid'
             /// Uppercased letters are each 'mapped' to their lowercased equivalent.
             if byte.isUppercasedASCIILetter {

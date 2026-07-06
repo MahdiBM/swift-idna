@@ -7,7 +7,7 @@ extension Span<UInt8> {
         /// The compiler will use SIMD instructions to perform the bitwise operations below,
         /// which will speed up the process.
         for idx in self.indices {
-            result |= unsafe self[unchecked: idx]
+            result |= self[idx]
         }
         return result <= 0x7F
     }
@@ -136,7 +136,7 @@ extension Span {
     @inlinable
     func allSatisfy(_ predicate: (Element) -> Bool) -> Bool {
         for idx in self.indices {
-            if !predicate(unsafe self[unchecked: idx]) {
+            if !predicate(self[idx]) {
                 return false
             }
         }
