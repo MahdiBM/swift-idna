@@ -4,8 +4,7 @@ extension Span<UInt8> {
     @inlinable
     var isASCII: Bool {
         var result: Element = 0
-        /// The compiler will use SIMD instructions to perform the bitwise operations below,
-        /// which will speed up the process.
+        /// This loop is usually auto-vectorized into SIMD instructions by LLVM.
         for idx in self.indices {
             result |= self[idx]
         }

@@ -18,10 +18,9 @@ extension IDNA {
     /// No negative values are allowed.
     @inlinable
     static func performByteCheck(on span: Span<UInt8>) -> CharacterCheckResult {
-        /// The compiler will use SIMD instructions to perform the bitwise operations below,
-        /// which will speed up the process.
         var isASCII_Number: UInt8 = 0
         var forSureContainsLowercasedOnly_Number: UInt8 = 0
+        /// This loop is usually auto-vectorized into SIMD instructions by LLVM.
         for idx in span.indices {
             let byte = span[idx]
             isASCII_Number |= byte

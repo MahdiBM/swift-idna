@@ -419,8 +419,8 @@ extension IDNA {
             base: newerBytes,
             startIndex: currentNewerBytesCount
         )
-        if unsafe Punycode.decode(
-            _uncheckedAssumingValidUTF8: span.extracting(unchecked: noXNRange),
+        if Punycode.decode(
+            _uncheckedAssumingValidUTF8: unsafe span.extracting(unchecked: noXNRange),
             scalarsIndexToUTF8IndexForReuse: &scalarsIndexToUTF8IndexForReuse,
             outputBuffer: &outputBuffer
         ) {

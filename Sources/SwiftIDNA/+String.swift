@@ -62,7 +62,7 @@ extension String {
     ) throws(E) -> T {
         do {
             if let fastResult = try self.utf8.withContiguousStorageIfAvailable({
-                unsafe try body($0.span)
+                try body(unsafe $0.span)
             }) {
                 return fastResult
             }
@@ -78,7 +78,7 @@ extension String {
 
         do {
             return try self.withUTF8 {
-                unsafe try body($0.span)
+                try body(unsafe $0.span)
             }
         } catch let error as E {
             throw error
@@ -145,7 +145,7 @@ extension Substring {
     ) throws(E) -> T {
         do {
             if let fastResult = unsafe try self.utf8.withContiguousStorageIfAvailable({
-                unsafe try body($0.span)
+                try body(unsafe $0.span)
             }) {
                 return fastResult
             }
@@ -161,7 +161,7 @@ extension Substring {
 
         do {
             return try self.withUTF8 {
-                unsafe try body($0.span)
+                try body(unsafe $0.span)
             }
         } catch let error as E {
             throw error
