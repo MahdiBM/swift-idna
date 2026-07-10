@@ -104,7 +104,7 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 ## Benchmark Comparisons VS swift-foundation's ICU
 
 * To see up to date information about performance of this package, please go to this [benchmarks list](https://github.com/swift-dns/swift-idna/actions/workflows/benchmarks.yml?query=branch%3Amain), and choose the most recent benchmark. You'll see a summary of the benchmark there.
-* The results below are all reproducible by simply running `scripts/benchmark.bash` on a machine of your own.
+* The results below are all reproducible by simply running `scripts/benchmark.sh` on a machine of your own.
 * swift-foundation applies short-circuits of its own for ascii domain names so it _should_ perform better than ICU (but likely still not as good as swift-idna).
 * Last update: Jun 19, 2026
 
