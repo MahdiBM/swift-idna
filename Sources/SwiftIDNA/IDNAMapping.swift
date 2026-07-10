@@ -27,47 +27,36 @@ extension IDNAMapping {
         /// `unsafelyUnwrapped` because the C function is guaranteed to return a non-nil pointer.
         /// There are also extensive tests in IDNATests for this function.
         let result = unsafe cswift_idna_mapping_lookup(scalar.value).unsafelyUnwrapped.pointee
+        let status: IDNAMapping.IDNA2008Status
+
+        switch unsafe result.status {
+        case 0:
+            status = .NV8
+        case 1:
+            status = .XV8
+        default:
+            assert(unsafe result.status == 2)
+            status = .none
+        }
+        let scalars = unsafe IDNAUnicodeScalarView(
+            staticPointer: UnsafeBufferPointer(
+                start: result.mapped_utf8_bytes,
+                count: Int(result.mapped_byte_count)
+            )
+        )
+
         switch unsafe result.type {
         case 0:
-            let status: IDNAMapping.IDNA2008Status =
-                switch unsafe result.status {
-                case 0: .NV8
-                case 1: .XV8
-                case 2: .none
-                default:
-                    fatalError(
-                        "Unexpected IDNAMapping.CSwiftIDNA2008Status: \(unsafe result.status) for type \(unsafe result.type)"
-                    )
-                }
             return .valid(status)
         case 1:
-            /// These are guaranteed to be valid Unicode scalars.
-            /// We wrap these in a view-like type (IDNAUnicodeScalarView) to ensure we don't need
-            /// allocations while having a way to guarantee they are valid Unicode scalars to users.
-            let scalars = unsafe IDNAUnicodeScalarView(
-                staticPointer: UnsafeBufferPointer(
-                    start: result.mapped_utf8_bytes,
-                    count: Int(result.mapped_byte_count)
-                )
-            )
             return .mapped(scalars)
         case 2:
-            /// These are guaranteed to be valid Unicode scalars.
-            /// We wrap these in a view-like type (IDNAUnicodeScalarView) to ensure we don't need
-            /// allocations while having a way to guarantee they are valid Unicode scalars to users.
-            let scalars = unsafe IDNAUnicodeScalarView(
-                staticPointer: UnsafeBufferPointer(
-                    start: result.mapped_utf8_bytes,
-                    count: Int(result.mapped_byte_count)
-                )
-            )
             return .deviation(scalars)
         case 3:
             return .disallowed
-        case 4:
-            return .ignored
         default:
-            fatalError("Unexpected CSwiftIDNAMappingResultType: \(unsafe result.type)")
+            assert(unsafe result.type == 4)
+            return .ignored
         }
     }
 }
