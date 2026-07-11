@@ -273,36 +273,27 @@ enum Punycode {
 
                 let scalar = unsafe Unicode.Scalar(n).unsafelyUnwrapped
 
-                if i == unicodeScalarsIndexToUTF8IndexCount {
-                    output.append(copying: scalar.utf8)
-                    unsafe unicodeScalarsIndexToUTF8Index[
-                        unchecked: unicodeScalarsIndexToUTF8IndexCount
-                    ] =
-                        output.count &- 1
-                    unicodeScalarsIndexToUTF8IndexCount &+= 1
-                } else {
-                    let iInt = Int(i)
-                    let previousIdxOfScalarInBytes =
-                        unsafe iInt == 0
-                        ? 0
-                        : unicodeScalarsIndexToUTF8Index[unchecked: iInt &- 1]
-                    let insertIndex =
-                        iInt == 0
-                        ? 0
-                        : previousIdxOfScalarInBytes &+ 1
-                    output.insert(copying: scalar.utf8, at: insertIndex)
-                    let utf8Count = scalar.utf8.count
-                    let firstElementFactor = i == 0 ? -1 : 0
+                let iInt = Int(i)
+                let previousIdxOfScalarInBytes =
+                    unsafe iInt == 0
+                    ? 0
+                    : unicodeScalarsIndexToUTF8Index[unchecked: iInt &- 1]
+                let insertIndex =
+                    iInt == 0
+                    ? 0
+                    : previousIdxOfScalarInBytes &+ 1
+                output.insert(copying: scalar.utf8, at: insertIndex)
+                let utf8Count = scalar.utf8.count
+                let firstElementFactor = i == 0 ? -1 : 0
 
-                    let toInsert = previousIdxOfScalarInBytes &+ utf8Count &+ firstElementFactor
+                let toInsert = previousIdxOfScalarInBytes &+ utf8Count &+ firstElementFactor
 
-                    _ = unicodeScalarsIndexToUTF8Index.removeLast()
-                    unicodeScalarsIndexToUTF8Index.swift_idna_insert(toInsert, at: iInt)
-                    unicodeScalarsIndexToUTF8IndexCount &+= 1
+                _ = unicodeScalarsIndexToUTF8Index.removeLast()
+                unicodeScalarsIndexToUTF8Index.swift_idna_insert(toInsert, at: iInt)
+                unicodeScalarsIndexToUTF8IndexCount &+= 1
 
-                    for idx in (iInt &+ 1)..<unicodeScalarsIndexToUTF8IndexCount {
-                        unsafe unicodeScalarsIndexToUTF8Index[unchecked: idx] &+= utf8Count
-                    }
+                for idx in (iInt &+ 1)..<unicodeScalarsIndexToUTF8IndexCount {
+                    unsafe unicodeScalarsIndexToUTF8Index[unchecked: idx] &+= utf8Count
                 }
 
                 i &+= 1
