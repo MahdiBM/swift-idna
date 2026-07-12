@@ -49,7 +49,7 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Lowercased_google_dot_com_Instructions",
         configuration: .init(
             metrics: [.instructions],
-            warmupIterations: 1,
+            warmupIterations: 10,
             maxIterations: 10,
         )
     ) { benchmark in
@@ -90,7 +90,7 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Lowercased_google_dot_com_Instructions_ICU",
         configuration: .init(
             metrics: [.instructions],
-            warmupIterations: 1,
+            warmupIterations: 10,
             maxIterations: 10,
         )
     ) { benchmark in
@@ -133,7 +133,7 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Uppercased_google_dot_com_Instructions",
         configuration: .init(
             metrics: [.instructions],
-            warmupIterations: 1,
+            warmupIterations: 10,
             maxIterations: 10,
         )
     ) { benchmark in
@@ -174,7 +174,7 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Uppercased_google_dot_com_Instructions_ICU",
         configuration: .init(
             metrics: [.instructions],
-            warmupIterations: 1,
+            warmupIterations: 10,
             maxIterations: 10,
         )
     ) { benchmark in
@@ -217,7 +217,7 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Lowercased_app-analytics-services_dot_com_Instructions",
         configuration: .init(
             metrics: [.instructions],
-            warmupIterations: 1,
+            warmupIterations: 10,
             maxIterations: 10,
         )
     ) { benchmark in
@@ -258,7 +258,7 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Lowercased_app-analytics-services_dot_com_Instructions_ICU",
         configuration: .init(
             metrics: [.instructions],
-            warmupIterations: 1,
+            warmupIterations: 10,
             maxIterations: 10,
         )
     ) { benchmark in
@@ -301,7 +301,7 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Uppercased_app-analytics-services_dot_com_Instructions",
         configuration: .init(
             metrics: [.instructions],
-            warmupIterations: 1,
+            warmupIterations: 10,
             maxIterations: 10,
         )
     ) { benchmark in
@@ -342,7 +342,7 @@ let benchmarks: @Sendable () -> Void = {
         "To_Unicode_Uppercased_app-analytics-services_dot_com_Instructions_ICU",
         configuration: .init(
             metrics: [.instructions],
-            warmupIterations: 1,
+            warmupIterations: 10,
             maxIterations: 10,
         )
     ) { benchmark in
@@ -387,7 +387,7 @@ let benchmarks: @Sendable () -> Void = {
             "To_Unicode_\(namePrefix)_öob_dot_se_Instructions",
             configuration: .init(
                 metrics: [.instructions],
-                warmupIterations: 1,
+                warmupIterations: 10,
                 maxIterations: 10,
             )
         ) { benchmark in
@@ -429,7 +429,7 @@ let benchmarks: @Sendable () -> Void = {
                 "To_Unicode_\(namePrefix)_öob_dot_se_Instructions_ICU",
                 configuration: .init(
                     metrics: [.instructions],
-                    warmupIterations: 1,
+                    warmupIterations: 10,
                     maxIterations: 10,
                 )
             ) { benchmark in
@@ -474,7 +474,7 @@ let benchmarks: @Sendable () -> Void = {
             "To_Unicode_\(namePrefix)_生命之花_dot_中国_Instructions",
             configuration: .init(
                 metrics: [.instructions],
-                warmupIterations: 1,
+                warmupIterations: 10,
                 maxIterations: 10,
             )
         ) { benchmark in
@@ -516,7 +516,7 @@ let benchmarks: @Sendable () -> Void = {
                 "To_Unicode_\(namePrefix)_生命之花_dot_中国_Instructions_ICU",
                 configuration: .init(
                     metrics: [.instructions],
-                    warmupIterations: 1,
+                    warmupIterations: 10,
                     maxIterations: 10,
                 )
             ) { benchmark in
