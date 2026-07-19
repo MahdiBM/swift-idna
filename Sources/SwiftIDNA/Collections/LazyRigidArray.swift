@@ -35,9 +35,12 @@ struct LazyRigidArray<Integer: FixedWidthInteger>: ~Copyable {
         } else {
             var array = RigidArray<Integer>(capacity: capacityToReserve)
             let result = array.edit { output in
-                /// The implementation relies on all indices being available to modify out of order,
-                /// so we fill the array with zeros
-                output.append(repeating: 0, count: capacityToReserve)
+                unsafe output.withUnsafeMutableBufferPointer { (buffer, count) in
+                    let baseAddress = unsafe buffer.baseAddress.unsafelyUnwrapped
+                    let advancedAddress = unsafe baseAddress + count
+                    unsafe advancedAddress.initialize(repeating: 0, count: capacityToReserve)
+                    count += capacityToReserve
+                }
                 return body(&output)
             }
             self.array = .some(array)
