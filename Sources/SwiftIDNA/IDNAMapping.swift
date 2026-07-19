@@ -1,20 +1,32 @@
 public import CSwiftIDNA
 
-@nonexhaustive
 @available(SwiftStdlib 5.1, *)
-public enum IDNAMapping: Equatable {
-    @nonexhaustive
-    public enum IDNA2008Status {
-        case NV8
-        case XV8
-        case none
+@usableFromInline
+struct IDNAMapping {
+    @usableFromInline
+    enum Tag: UInt16 {
+        case validNone = 0
+        case validNV8 = 1
+        case validXV8 = 2
+        case ignored = 3
+        case disallowed = 4
+        case deviation = 5
+        case mapped = 6
     }
 
-    case valid(IDNA2008Status)
-    case mapped(IDNAUnicodeScalarView)
-    case deviation(IDNAUnicodeScalarView)
-    case disallowed
-    case ignored
+    @usableFromInline
+    let tag: Tag
+    /// Only valid for `mapped` and `deviation` tags. Otherwise an invalid value.
+    /// We don't guard access to it with e.g. an assert because again
+    /// the tests are exhaustive and they'd fail anyway.
+    @usableFromInline
+    let mappedScalars: IDNAUnicodeScalarView
+
+    @inlinable
+    init(tag: Tag, mappedScalars: IDNAUnicodeScalarView) {
+        self.tag = tag
+        self.mappedScalars = mappedScalars
+    }
 }
 
 @available(SwiftStdlib 5.1, *)
@@ -23,38 +35,21 @@ extension IDNAMapping {
     /// - Parameter scalar: The Unicode scalar to look up
     /// - Returns: The corresponding `IDNAMapping` value
     @inlinable
-    public static func `for`(scalar: Unicode.Scalar) -> IDNAMapping {
+    static func `for`(scalar: Unicode.Scalar) -> IDNAMapping {
         let packedValue = cswift_idna_packed_value(scalar.value)
-        let tag = packedValue >> 13
-        let payload = UInt32(packedValue & 0x1FFF)
-
-        switch tag {
-        case UInt16(CSWIFT_IDNA_TAG_VALID_NONE):
-            return .valid(.none)
-        case UInt16(CSWIFT_IDNA_TAG_VALID_NV8):
-            return .valid(.NV8)
-        case UInt16(CSWIFT_IDNA_TAG_VALID_XV8):
-            return .valid(.XV8)
-        case UInt16(CSWIFT_IDNA_TAG_IGNORED):
-            return .ignored
-        case UInt16(CSWIFT_IDNA_TAG_DISALLOWED):
-            return .disallowed
-        case UInt16(CSWIFT_IDNA_TAG_DEVIATION):
-            return .deviation(Self.mappedView(sliceIndex: payload))
-        default:
-            assert(tag == UInt16(CSWIFT_IDNA_TAG_MAPPED))
-            return .mapped(Self.mappedView(sliceIndex: payload))
-        }
-    }
-
-    @inlinable
-    static func mappedView(sliceIndex: UInt32) -> IDNAUnicodeScalarView {
+        /// This is exhaustively tested, so `unsafelyUnwrapped` is safe.
+        let tag = unsafe Tag(rawValue: packedValue >> 13).unsafelyUnwrapped
+        let hasPayload = tag == .mapped || tag == .deviation
+        let sliceIndex = hasPayload ? UInt32(packedValue & 0x1FFF) : 0
         let slice = cswift_idna_mapped_slice(sliceIndex)
-        return unsafe IDNAUnicodeScalarView(
+        let payloadPtr = unsafe cswift_idna_mapped_utf8_at(slice >> 8)
+        let payloadCount = Int(slice & 0xFF)
+        let payload = unsafe IDNAUnicodeScalarView(
             staticPointer: UnsafeBufferPointer(
-                start: cswift_idna_mapped_utf8_at(slice >> 8),
-                count: Int(slice & 0xFF)
+                start: payloadPtr,
+                count: payloadCount
             )
         )
+        return IDNAMapping(tag: tag, mappedScalars: payload)
     }
 }

@@ -5,11 +5,7 @@ import Foundation
 import FoundationNetworking
 #endif
 
-/// Generation parameters. Variants are produced by changing these two constants:
-/// - `useDelta`: encode single-scalar mappings as `code_point + delta` (fewer UTF-8 blob touches),
-///   otherwise route every mapping through the UTF-8 blob (simpler `IDNAUnicodeScalarView`).
-/// - `blockShift`: log2 of the trie block size. Must match CSWIFT_IDNA_BLOCK_SHIFT.
-let useDelta = false
+/// `blockShift` is log2 of the trie block size. Must match CSWIFT_IDNA_BLOCK_SHIFT in CSwiftIDNA.h.
 let blockShift = 6
 
 let mappingTableURL = "https://www.unicode.org/Public/idna/latest/IdnaMappingTable.txt"
@@ -19,7 +15,8 @@ let maxCodePoint: UInt32 = 0x10FFFF
 let blockSize = 1 << blockShift
 let blockMask = blockSize - 1
 
-/// Trie value tags. Must match the CSWIFT_IDNA_TAG_* macros in CSwiftIDNA.h.
+/// Trie value tags. Must match the `Tag` enum in Sources/SwiftIDNA/IDNAMapping.swift, which
+/// decodes the values this script bakes into the table.
 enum Tag: UInt16 {
     case validNone = 0
     case validNV8 = 1
@@ -27,8 +24,7 @@ enum Tag: UInt16 {
     case ignored = 3
     case disallowed = 4
     case deviation = 5
-    case mappedDelta = 6
-    case mapped = 7
+    case mapped = 6
 }
 
 enum Status: Equatable {
@@ -158,7 +154,6 @@ func findSubsequence(_ haystack: [UInt8], _ needle: [UInt8]) -> Int? {
 struct BuiltTables {
     var blockOffsets: [UInt16] = []
     var packedValues: [UInt16] = []
-    var mappedDeltas: [Int32] = []
     var mappedSlices: [UInt32] = []
     var mappedUTF8: [UInt8] = []
 }
@@ -168,7 +163,6 @@ func build(_ statuses: [Status]) -> BuiltTables {
 
     var utf8OffsetForOutput: [[UInt8]: Int] = [:]
     var sliceIndexForOutput: [[UInt8]: Int] = [:]
-    var deltaIndexForDelta: [Int32: Int] = [:]
 
     /// Interns a mapping/deviation output into the UTF-8 blob (sharing substrings) and returns the
     /// index into `mappedSlices`.
@@ -193,20 +187,10 @@ func build(_ statuses: [Status]) -> BuiltTables {
         return sliceIndex
     }
 
-    func internDelta(_ delta: Int32) -> Int {
-        if let existing = deltaIndexForDelta[delta] {
-            return existing
-        }
-        let index = tables.mappedDeltas.count
-        tables.mappedDeltas.append(delta)
-        deltaIndexForDelta[delta] = index
-        return index
-    }
-
-    /// Assign every mapping/deviation output an interned slot first, so hot outputs (encountered
-    /// first, e.g. ASCII foldings) get the lowest, most cache-friendly indices, and longer outputs
-    /// can still reuse a previously-stored shorter suffix via `findSubsequence`.
-    func value(for status: Status, codePoint: Int) -> UInt16 {
+    /// Hot outputs are encountered first (e.g. ASCII foldings), so they get the lowest, most
+    /// cache-friendly slice indices, and longer outputs can still reuse a previously-stored shorter
+    /// suffix via `findSubsequence`.
+    func value(for status: Status) -> UInt16 {
         switch status {
         case .validNone: return Tag.validNone.rawValue << 13
         case .validNV8: return Tag.validNV8.rawValue << 13
@@ -218,12 +202,6 @@ func build(_ statuses: [Status]) -> BuiltTables {
             precondition(index < (1 << 13), "deviation index exceeds 13 bits")
             return (Tag.deviation.rawValue << 13) | UInt16(index)
         case .mapped(let scalars):
-            if useDelta && scalars.count == 1 {
-                let delta = Int32(scalars[0]) - Int32(codePoint)
-                let index = internDelta(delta)
-                precondition(index < (1 << 13), "delta index exceeds 13 bits")
-                return (Tag.mappedDelta.rawValue << 13) | UInt16(index)
-            }
             let index = internOutput(scalars)
             precondition(index < (1 << 13), "mapped index exceeds 13 bits")
             return (Tag.mapped.rawValue << 13) | UInt16(index)
@@ -232,7 +210,7 @@ func build(_ statuses: [Status]) -> BuiltTables {
 
     var values = [UInt16](repeating: 0, count: statuses.count)
     for codePoint in 0..<statuses.count {
-        values[codePoint] = value(for: statuses[codePoint], codePoint: codePoint)
+        values[codePoint] = value(for: statuses[codePoint])
     }
 
     let numBlocks = (statuses.count + blockSize - 1) / blockSize
@@ -300,9 +278,6 @@ func decode(_ codePoint: Int, _ tables: BuiltTables) -> Status {
     case .ignored: return .ignored
     case .disallowed: return .disallowed
     case .deviation: return .deviation(scalarsFromSlice(payload))
-    case .mappedDelta:
-        let delta = tables.mappedDeltas[payload]
-        return .mapped([UInt32(Int32(codePoint) + delta)])
     case .mapped: return .mapped(scalarsFromSlice(payload))
     }
 }
@@ -321,8 +296,7 @@ func verify(_ statuses: [Status], _ tables: BuiltTables) {
 }
 
 /// Emits a `const <cType> <name>[] = { ... }` C array. Integer literals are coerced to the array
-/// element type, so no unsigned suffix is needed. An empty array is emitted with a single `0` so
-/// the C declaration stays valid (used by `mapped_deltas` in the non-delta build).
+/// element type, so no unsigned suffix is needed.
 func emitArray(
     _ cType: String,
     _ name: String,
@@ -330,11 +304,12 @@ func emitArray(
     perLine: Int = 16,
     into code: inout String
 ) {
-    let elements = values.isEmpty ? [Int64(0)] : values.map { Int64($0) }
+    let elements = values.map { Int64($0) }
     code += "const \(cType) \(name)[\(elements.count)] = {\n"
     for start in stride(from: 0, to: elements.count, by: perLine) {
         let end = min(start + perLine, elements.count)
-        let line = elements[start..<end].map(String.init).joined(separator: ", ")
+        let line = elements[start..<end].map { "0x" + String($0, radix: 16, uppercase: true) }
+            .joined(separator: ", ")
         code += "    \(line),\n"
     }
     code += "};\n\n"
@@ -351,7 +326,6 @@ func emit(_ tables: BuiltTables) -> String {
 
     emitArray("uint16_t", "cswift_idna_block_offsets", tables.blockOffsets, into: &code)
     emitArray("uint16_t", "cswift_idna_packed_values", tables.packedValues, into: &code)
-    emitArray("int32_t", "cswift_idna_mapped_deltas", tables.mappedDeltas, into: &code)
     emitArray("uint32_t", "cswift_idna_mapped_slices", tables.mappedSlices, into: &code)
     emitArray("uint8_t", "cswift_idna_mapped_utf8", tables.mappedUTF8, perLine: 24, into: &code)
 
@@ -378,13 +352,12 @@ func run() {
     let tables = build(statuses)
     print(
         "Built: blockOffsets=\(tables.blockOffsets.count) packedValues=\(tables.packedValues.count) "
-            + "mappedDeltas=\(tables.mappedDeltas.count) mappedSlices=\(tables.mappedSlices.count) "
-            + "mappedUTF8=\(tables.mappedUTF8.count) (useDelta=\(useDelta), shift=\(blockShift))"
+            + "mappedSlices=\(tables.mappedSlices.count) mappedUTF8=\(tables.mappedUTF8.count) "
+            + "(shift=\(blockShift))"
     )
     let totalBytes =
         tables.blockOffsets.count * 2
         + tables.packedValues.count * 2
-        + tables.mappedDeltas.count * 4
         + tables.mappedSlices.count * 4
         + tables.mappedUTF8.count
     let totalKB = String(format: "%.1f", Double(totalBytes) / 1024)
