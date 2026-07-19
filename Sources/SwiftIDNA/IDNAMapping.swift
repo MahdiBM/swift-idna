@@ -24,39 +24,37 @@ extension IDNAMapping {
     /// - Returns: The corresponding `IDNAMapping` value
     @inlinable
     public static func `for`(scalar: Unicode.Scalar) -> IDNAMapping {
-        /// `unsafelyUnwrapped` because the C function is guaranteed to return a non-nil pointer.
-        /// There are also extensive tests in IDNATests for this function.
-        let result = unsafe cswift_idna_mapping_lookup(scalar.value).unsafelyUnwrapped.pointee
-        let status: IDNAMapping.IDNA2008Status
+        let packedValue = cswift_idna_packed_value(scalar.value)
+        let tag = packedValue >> 13
+        let payload = UInt32(packedValue & 0x1FFF)
 
-        switch unsafe result.status {
-        case 0:
-            status = .NV8
-        case 1:
-            status = .XV8
+        switch tag {
+        case UInt16(CSWIFT_IDNA_TAG_VALID_NONE):
+            return .valid(.none)
+        case UInt16(CSWIFT_IDNA_TAG_VALID_NV8):
+            return .valid(.NV8)
+        case UInt16(CSWIFT_IDNA_TAG_VALID_XV8):
+            return .valid(.XV8)
+        case UInt16(CSWIFT_IDNA_TAG_IGNORED):
+            return .ignored
+        case UInt16(CSWIFT_IDNA_TAG_DISALLOWED):
+            return .disallowed
+        case UInt16(CSWIFT_IDNA_TAG_DEVIATION):
+            return .deviation(Self.mappedView(sliceIndex: payload))
         default:
-            assert(unsafe result.status == 2)
-            status = .none
+            assert(tag == UInt16(CSWIFT_IDNA_TAG_MAPPED))
+            return .mapped(Self.mappedView(sliceIndex: payload))
         }
-        let scalars = unsafe IDNAUnicodeScalarView(
+    }
+
+    @inlinable
+    static func mappedView(sliceIndex: UInt32) -> IDNAUnicodeScalarView {
+        let slice = cswift_idna_mapped_slice(sliceIndex)
+        return unsafe IDNAUnicodeScalarView(
             staticPointer: UnsafeBufferPointer(
-                start: result.mapped_utf8_bytes,
-                count: Int(result.mapped_byte_count)
+                start: cswift_idna_mapped_utf8_at(slice >> 8),
+                count: Int(slice & 0xFF)
             )
         )
-
-        switch unsafe result.type {
-        case 0:
-            return .valid(status)
-        case 1:
-            return .mapped(scalars)
-        case 2:
-            return .deviation(scalars)
-        case 3:
-            return .disallowed
-        default:
-            assert(unsafe result.type == 4)
-            return .ignored
-        }
     }
 }
