@@ -323,7 +323,7 @@ extension IDNA {
             case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
                 requiredCapacity &+= range.count
             case .mapped:
-                requiredCapacity &+= mapping.mappedScalars.utf8BytesCount
+                requiredCapacity &+= mapping.mappedScalars.utf8BytesSpan.count
             case .ignored:
                 ()
             }
@@ -375,7 +375,7 @@ extension IDNA {
 
         maxLabelLength = max(
             maxLabelLength,
-            span.count - startIndex
+            span.count &- startIndex
         )
 
         return maxLabelLength

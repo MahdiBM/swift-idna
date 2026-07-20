@@ -30,21 +30,25 @@ struct UnicodeScalarIterator {
             return (Unicode.Scalar(firstByte), range)
         }
 
-        let scalarLength = (~firstByte).leadingZeroBitCount
+        /// Unicode scalar byte-length == count of leading ones in the first byte
+        let scalarUTF8Length = (~firstByte).leadingZeroBitCount
 
-        var encodedScalar = UTF8.EncodedScalar()
-        let range = unsafe Range<Int>(
-            uncheckedBounds: (
-                self.currentCodeUnitOffset, self.currentCodeUnitOffset &+ scalarLength
-            )
-        )
-        for idx in range {
-            unsafe encodedScalar.append(bytes[unchecked: idx])
+        let lowerBound = self.currentCodeUnitOffset
+        self.currentCodeUnitOffset &+= scalarUTF8Length
+
+        var bits: UInt32 = 0
+        var idx = 0
+        while idx < scalarUTF8Length {
+            defer { idx &+= 1 }
+            let byteIdx = lowerBound &+ idx
+            let byte = unsafe bytes[unchecked: byteIdx]
+            bits |= UInt32(byte &+ 1) &<< (idx &<< 3)
         }
+        let scalar = UnicodeScalarIterator.decode(bits, utf8Count: scalarUTF8Length)
 
-        let scalar = UTF8.decode(encodedScalar)
-        self.currentCodeUnitOffset &+= scalarLength
-
+        let range = unsafe Range<Int>(
+            uncheckedBounds: (lowerBound, self.currentCodeUnitOffset)
+        )
         return (scalar, range)
     }
 
@@ -55,5 +59,32 @@ struct UnicodeScalarIterator {
     @inlinable
     mutating func next(in bytes: Span<UInt8>) -> Unicode.Scalar? {
         self.nextWithRange(in: bytes)?.codePoint
+    }
+
+    @inline(__always)
+    @inlinable
+    static func decode(_ bits: UInt32, utf8Count: Int) -> Unicode.Scalar {
+        switch utf8Count {
+        case 1:
+            return unsafe Unicode.Scalar(bits &- 0x01).unsafelyUnwrapped
+        case 2:
+            let bits = bits &- 0x0101
+            var value = (bits & 0b0_______________________11_1111__0000_0000) &>> 8
+            value |= (bits & 0b0________________________________0001_1111) &<< 6
+            return unsafe Unicode.Scalar(value).unsafelyUnwrapped
+        case 3:
+            let bits = bits &- 0x010101
+            var value = (bits & 0b0____________11_1111__0000_0000__0000_0000) &>> 16
+            value |= (bits & 0b0_______________________11_1111__0000_0000) &>> 2
+            value |= (bits & 0b0________________________________0000_1111) &<< 12
+            return unsafe Unicode.Scalar(value).unsafelyUnwrapped
+        default:
+            let bits = bits &- 0x0101_0101
+            var value = (bits & 0b0_11_1111__0000_0000__0000_0000__0000_0000) &>> 24
+            value |= (bits & 0b0____________11_1111__0000_0000__0000_0000) &>> 10
+            value |= (bits & 0b0_______________________11_1111__0000_0000) &<< 4
+            value |= (bits & 0b0________________________________0000_0111) &<< 18
+            return unsafe Unicode.Scalar(value).unsafelyUnwrapped
+        }
     }
 }
