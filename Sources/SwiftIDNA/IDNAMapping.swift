@@ -1,20 +1,32 @@
 public import CSwiftIDNA
 
-@nonexhaustive
 @available(SwiftStdlib 5.1, *)
-public enum IDNAMapping: Equatable {
-    @nonexhaustive
-    public enum IDNA2008Status {
-        case NV8
-        case XV8
-        case none
+@usableFromInline
+struct IDNAMapping {
+    @usableFromInline
+    enum Tag: UInt16 {
+        case validNone = 0
+        case validNV8 = 1
+        case validXV8 = 2
+        case ignored = 3
+        case disallowed = 4
+        case deviation = 5
+        case mapped = 6
     }
 
-    case valid(IDNA2008Status)
-    case mapped(IDNAUnicodeScalarView)
-    case deviation(IDNAUnicodeScalarView)
-    case disallowed
-    case ignored
+    @usableFromInline
+    let tag: Tag
+    /// Only valid for `mapped` and `deviation` tags. Otherwise an invalid value.
+    /// We don't guard access to it with e.g. an assert because again
+    /// the tests are exhaustive and they'd fail anyway.
+    @usableFromInline
+    let mappedScalars: IDNAUnicodeScalarView
+
+    @inlinable
+    init(tag: Tag, mappedScalars: IDNAUnicodeScalarView) {
+        self.tag = tag
+        self.mappedScalars = mappedScalars
+    }
 }
 
 @available(SwiftStdlib 5.1, *)
@@ -23,51 +35,21 @@ extension IDNAMapping {
     /// - Parameter scalar: The Unicode scalar to look up
     /// - Returns: The corresponding `IDNAMapping` value
     @inlinable
-    public static func `for`(scalar: Unicode.Scalar) -> IDNAMapping {
-        /// `unsafelyUnwrapped` because the C function is guaranteed to return a non-nil pointer.
-        /// There are also extensive tests in IDNATests for this function.
-        let result = unsafe cswift_idna_mapping_lookup(scalar.value).unsafelyUnwrapped.pointee
-        switch unsafe result.type {
-        case 0:
-            let status: IDNAMapping.IDNA2008Status =
-                switch unsafe result.status {
-                case 0: .NV8
-                case 1: .XV8
-                case 2: .none
-                default:
-                    fatalError(
-                        "Unexpected IDNAMapping.CSwiftIDNA2008Status: \(unsafe result.status) for type \(unsafe result.type)"
-                    )
-                }
-            return .valid(status)
-        case 1:
-            /// These are guaranteed to be valid Unicode scalars.
-            /// We wrap these in a view-like type (IDNAUnicodeScalarView) to ensure we don't need
-            /// allocations while having a way to guarantee they are valid Unicode scalars to users.
-            let scalars = unsafe IDNAUnicodeScalarView(
-                staticPointer: UnsafeBufferPointer(
-                    start: result.mapped_utf8_bytes,
-                    count: Int(result.mapped_byte_count)
-                )
+    static func `for`(scalar: Unicode.Scalar) -> IDNAMapping {
+        let packedValue = cswift_idna_packed_value(scalar.value)
+        /// This is exhaustively tested, so `unsafelyUnwrapped` is safe.
+        let tag = unsafe Tag(rawValue: packedValue >> 13).unsafelyUnwrapped
+        /// If there is no payload (!mapped && !deviation) then `sliceIndex` always amounts to 0.
+        let sliceIndex = UInt32(packedValue & 0x1FFF)
+        let slice = cswift_idna_mapped_slice(sliceIndex)
+        let payloadPtr = unsafe cswift_idna_mapped_utf8_at(slice >> 8)
+        let payloadCount = Int(slice & 0xFF)
+        let payload = unsafe IDNAUnicodeScalarView(
+            staticPointer: UnsafeBufferPointer(
+                start: payloadPtr,
+                count: payloadCount
             )
-            return .mapped(scalars)
-        case 2:
-            /// These are guaranteed to be valid Unicode scalars.
-            /// We wrap these in a view-like type (IDNAUnicodeScalarView) to ensure we don't need
-            /// allocations while having a way to guarantee they are valid Unicode scalars to users.
-            let scalars = unsafe IDNAUnicodeScalarView(
-                staticPointer: UnsafeBufferPointer(
-                    start: result.mapped_utf8_bytes,
-                    count: Int(result.mapped_byte_count)
-                )
-            )
-            return .deviation(scalars)
-        case 3:
-            return .disallowed
-        case 4:
-            return .ignored
-        default:
-            fatalError("Unexpected CSwiftIDNAMappingResultType: \(unsafe result.type)")
-        }
+        )
+        return IDNAMapping(tag: tag, mappedScalars: payload)
     }
 }

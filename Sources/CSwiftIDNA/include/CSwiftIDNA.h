@@ -2,39 +2,52 @@
 #define CSWIFT_DNS_IDNA_H
 
 #include <stdint.h>
-#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// IDNA2008 status enum values (matching IDNAMapping.IDNA2008Status)
-typedef enum {
-    IDNA_STATUS_NV8 = 0,
-    IDNA_STATUS_XV8 = 1,
-    IDNA_STATUS_NONE = 2
-} CSwiftIDNA2008Status;
+// IDNA mapping is stored as a two-stage code-point trie built by
+// utils/IDNAMappingTableGenerator.swift.
+//
+// A code point is split into a block number (high bits) and an offset within
+// the block (low bits). `block_offsets` maps the block number to where that
+// block's values begin in `packed_values`:
+//
+//   packed_value = packed_values[block_offsets[cp >> BLOCK_SHIFT] + (cp & BLOCK_MASK)]
+//
+// The top 3 bits of `packed_value` are the mapping tag; the low 13 bits are the
+// payload. For the mapped and deviation tags the payload indexes `mapped_slices`,
+// each of which packs a byte offset into `mapped_utf8` (high 24 bits) and a
+// length (low 8 bits). The other tags carry no payload. The tag values are
+// defined by the `Tag` enum in Sources/SwiftIDNA/IDNAMapping.swift.
 
-// IDNA mapping result types (matching IDNAMapping cases)
-typedef enum {
-    IDNA_RESULT_VALID = 0,
-    IDNA_RESULT_MAPPED = 1,
-    IDNA_RESULT_DEVIATION = 2,
-    IDNA_RESULT_DISALLOWED = 3,
-    IDNA_RESULT_IGNORED = 4
-} CSwiftIDNAMappingResultType;
+#define CSWIFT_IDNA_BLOCK_SHIFT 6
+#define CSWIFT_IDNA_BLOCK_MASK 63
 
-// Structure to hold mapping result data
-typedef struct {
-    uint8_t type;
-    uint8_t status; // Only used for valid results
-    const uint8_t* mapped_utf8_bytes; // Array of UTF-8 bytes representing mapped Unicode scalars (for mapped/deviation)
-    uint8_t mapped_byte_count; // Number of UTF-8 bytes
-} CSwiftIDNAMappingResult;
+extern const uint16_t cswift_idna_block_offsets[];
+extern const uint16_t cswift_idna_packed_values[];
+extern const uint32_t cswift_idna_mapped_slices[];
+extern const uint8_t cswift_idna_mapped_utf8[];
 
-// Look up IDNA mapping for a given Unicode code point
-// Returns a pointer to a static CSwiftIDNAMappingResult
-const CSwiftIDNAMappingResult *cswift_idna_mapping_lookup(uint32_t code_point);
+// Returns the packed 16-bit trie value for any given valid Unicode scalar value.
+static inline uint16_t cswift_idna_packed_value(uint32_t code_point) {
+    return cswift_idna_packed_values[
+        (uint32_t)cswift_idna_block_offsets[code_point >> CSWIFT_IDNA_BLOCK_SHIFT]
+        + (code_point & CSWIFT_IDNA_BLOCK_MASK)
+    ];
+}
+
+// Returns the packed mapped/deviation slice (byte offset into mapped_utf8 in the
+// high 24 bits, UTF-8 byte length in the low 8 bits) for a mapped/deviation payload.
+static inline uint32_t cswift_idna_mapped_slice(uint32_t slice_index) {
+    return cswift_idna_mapped_slices[slice_index];
+}
+
+// Returns a pointer to the mapped/deviation UTF-8 bytes at the given byte offset.
+static inline const uint8_t *cswift_idna_mapped_utf8_at(uint32_t byte_offset) {
+    return cswift_idna_mapped_utf8 + byte_offset;
+}
 
 #ifdef __cplusplus
 } // extern "C"

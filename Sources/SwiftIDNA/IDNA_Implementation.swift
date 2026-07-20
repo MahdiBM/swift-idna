@@ -318,11 +318,12 @@ extension IDNA {
         var unicodeScalarsIterator = UnicodeScalarIterator()
 
         while let (scalar, range) = unicodeScalarsIterator.nextWithRange(in: span) {
-            switch IDNAMapping.for(scalar: scalar) {
-            case .valid(_), .deviation(_), .disallowed:
+            let mapping = IDNAMapping.for(scalar: scalar)
+            switch mapping.tag {
+            case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
                 requiredCapacity &+= range.count
-            case .mapped(let mappedScalars):
-                requiredCapacity &+= mappedScalars.utf8BytesCount
+            case .mapped:
+                requiredCapacity &+= mapping.mappedScalars.utf8BytesCount
             case .ignored:
                 ()
             }
@@ -338,12 +339,13 @@ extension IDNA {
         /// because we're guaranteed to have enough capacity.
         newBytes.append(exactExtraRequiredCapacity: requiredCapacity) { output in
             while let (scalar, range) = unicodeScalarsIterator.nextWithRange(in: span) {
-                switch IDNAMapping.for(scalar: scalar) {
-                case .valid(_), .deviation(_), .disallowed:
+                let mapping = IDNAMapping.for(scalar: scalar)
+                switch mapping.tag {
+                case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
                     let scalarBytesSpan = unsafe span.extracting(unchecked: range)
                     output.swift_idna_append(copying: scalarBytesSpan)
-                case .mapped(let mappedScalars):
-                    output.swift_idna_append(copying: mappedScalars.utf8BytesSpan)
+                case .mapped:
+                    output.swift_idna_append(copying: mapping.mappedScalars.utf8BytesSpan)
                 case .ignored:
                     ()
                 }
@@ -557,8 +559,9 @@ extension IDNA {
 
             while let codePoint = unicodeScalarsIterator.next(in: span) {
                 if !configuration.ignoreInvalidPunycode {
-                    switch IDNAMapping.for(scalar: codePoint) {
-                    case .valid, .deviation:
+                    let mapping = IDNAMapping.for(scalar: codePoint)
+                    switch mapping.tag {
+                    case .validNone, .validNV8, .validXV8, .deviation:
                         break
                     case .mapped, .disallowed, .ignored:
                         errors.append(
