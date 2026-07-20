@@ -111,57 +111,57 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 ### Summary
 
 > [!NOTE]
-> **swift-idna** wins 23 of the 24 benchmarks, ties 1.
-> **swift-idna** commits considerably less heap allocations.
-> **swift-idna** is much faster for the vast majority of the domain names in the wild, which are ASCII.
+> * swift-idna wins 23 of the 24 benchmarks, ties 1.
+> * swift-idna commits considerably less heap allocations.
+> * swift-idna is much faster for the vast majority of the domain names in the wild, which are ASCII.
 
 ### Non-ASCII Domain Names
 
 #### CPU Time
 
-| Benchmark                                  | Foundation | swift-idna | Improv. Ratio |
-| ------------------------------------------ | ---------- | ---------- | ------------- |
-| To_ASCII_Lax_öob_dot_se_CPU_300K           | 100ms      | 70ms       | 1.43x         |
-| To_ASCII_Lax_生命之花_dot_中国_CPU_200K      | 110ms      | 100ms      | 1.1x          |
-| To_Unicode_Lax_öob_dot_se_CPU_300K         | 120ms      | 70ms       | 1.71x         |
-| To_Unicode_Lax_生命之花_dot_中国_CPU_200K    | 140ms      | 110ms      | 1.27x         |
+| Benchmark                                  | ICU   | swift-idna | Improv. % |
+| ------------------------------------------ | ----- | ---------- | --------- |
+| To_ASCII_Lax_öob_dot_se_CPU_300K           | 100ms | 70ms       | 1.43x     |
+| To_ASCII_Lax_生命之花_dot_中国_CPU_200K      | 110ms | 100ms      | 1.1x      |
+| To_Unicode_Lax_öob_dot_se_CPU_300K         | 120ms | 70ms       | 1.71x     |
+| To_Unicode_Lax_生命之花_dot_中国_CPU_200K    | 140ms | 110ms      | 1.27x     |
 
 #### Malloc Count
 
-| Benchmark                                | Foundation | swift-idna | Improv. Ratio |
-| ---------------------------------------- | ---------- | ---------- | ------------- |
-| To_ASCII_Lax_öob_dot_se_Malloc           | 2          | 1          | 2x    (-1)    |
-| To_ASCII_Lax_生命之花_dot_中国_Malloc      | 5          | 4          | 1.25x (-1)    |
-| To_Unicode_Lax_öob_dot_se_Malloc         | 1          | 1          | 1x    (0)     |
-| To_Unicode_Lax_生命之花_dot_中国_Malloc    | 4          | 3          | 1.33x (-1)    |
+| Benchmark                                | ICU | swift-idna | Improv. %  |
+| ---------------------------------------- | --- | ---------- | ---------- |
+| To_ASCII_Lax_öob_dot_se_Malloc           | 2   | 1          | 2x    (-1) |
+| To_ASCII_Lax_生命之花_dot_中国_Malloc      | 5   | 4          | 1.25x (-1) |
+| To_Unicode_Lax_öob_dot_se_Malloc         | 1   | 1          | 1x    (0)  |
+| To_Unicode_Lax_生命之花_dot_中国_Malloc    | 4   | 3          | 1.33x (-1) |
 
 ### ASCII Domain Names
 
 #### CPU Time
 
-| Benchmark                                                   | Foundation | swift-idna | Improv. Ratio |
-| ----------------------------------------------------------- | ---------- | ---------- | ------------- |
-| To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_5M   | 530ms      | 120ms      | 4.42x         |
-| To_ASCII_Lowercased_google_dot_com_CPU_8M                   | 580ms      | 150ms      | 3.87x         |
-| To_ASCII_Uppercased_app-analytics-services_dot_com_CPU_3M   | 320ms      | 130ms      | 2.46x         |
-| To_ASCII_Uppercased_google_dot_com_CPU_5M                   | 360ms      | 120ms      | 3x            |
-| To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_4M | 420ms      | 130ms      | 3.23x         |
-| To_Unicode_Lowercased_google_dot_com_CPU_8M                 | 570ms      | 190ms      | 3x            |
-| To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_4M | 430ms      | 220ms      | 1.95x         |
-| To_Unicode_Uppercased_google_dot_com_CPU_5M                 | 350ms      | 150ms      | 2.33x         |
+| Benchmark                                                   | ICU   | swift-idna | Improv. % |
+| ----------------------------------------------------------- | ----- | ---------- | --------- |
+| To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_5M   | 530ms | 120ms      | 4.42x     |
+| To_ASCII_Lowercased_google_dot_com_CPU_8M                   | 580ms | 150ms      | 3.87x     |
+| To_ASCII_Uppercased_app-analytics-services_dot_com_CPU_3M   | 320ms | 130ms      | 2.46x     |
+| To_ASCII_Uppercased_google_dot_com_CPU_5M                   | 360ms | 120ms      | 3x        |
+| To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_4M | 420ms | 130ms      | 3.23x     |
+| To_Unicode_Lowercased_google_dot_com_CPU_8M                 | 570ms | 190ms      | 3x        |
+| To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_4M | 430ms | 220ms      | 1.95x     |
+| To_Unicode_Uppercased_google_dot_com_CPU_5M                 | 350ms | 150ms      | 2.33x     |
 
 #### Malloc Count
 
-| Benchmark                                                   | Foundation | swift-idna | Improv. Ratio |
-| ----------------------------------------------------------- | ---------- | ---------- | ------------- |
-| To_ASCII_Lowercased_app-analytics-services_dot_com_Malloc   | 2          | 0          | ∞  (-2)       |
-| To_ASCII_Lowercased_google_dot_com_Malloc                   | 1          | 0          | ∞  (-1)       |
-| To_ASCII_Uppercased_app-analytics-services_dot_com_Malloc   | 2          | 1          | 2x (-1)       |
-| To_ASCII_Uppercased_google_dot_com_Malloc                   | 1          | 0          | ∞  (-1)       |
-| To_Unicode_Lowercased_app-analytics-services_dot_com_Malloc | 2          | 0          | ∞  (-2)       |
-| To_Unicode_Lowercased_google_dot_com_Malloc                 | 1          | 0          | ∞  (-1)       |
-| To_Unicode_Uppercased_app-analytics-services_dot_com_Malloc | 2          | 1          | 2x (-1)       |
-| To_Unicode_Uppercased_google_dot_com_Malloc                 | 1          | 0          | ∞  (-1)       |
+| Benchmark                                                   | ICU | swift-idna | Improv. % |
+| ----------------------------------------------------------- | --- | ---------- | --------- |
+| To_ASCII_Lowercased_app-analytics-services_dot_com_Malloc   | 2   | 0          | ∞  (-2)   |
+| To_ASCII_Lowercased_google_dot_com_Malloc                   | 1   | 0          | ∞  (-1)   |
+| To_ASCII_Uppercased_app-analytics-services_dot_com_Malloc   | 2   | 1          | 2x (-1)   |
+| To_ASCII_Uppercased_google_dot_com_Malloc                   | 1   | 0          | ∞  (-1)   |
+| To_Unicode_Lowercased_app-analytics-services_dot_com_Malloc | 2   | 0          | ∞  (-2)   |
+| To_Unicode_Lowercased_google_dot_com_Malloc                 | 1   | 0          | ∞  (-1)   |
+| To_Unicode_Uppercased_app-analytics-services_dot_com_Malloc | 2   | 1          | 2x (-1)   |
+| To_Unicode_Uppercased_google_dot_com_Malloc                 | 1   | 0          | ∞  (-1)   |
 
 ## How To Add swift-idna To Your Project
 
