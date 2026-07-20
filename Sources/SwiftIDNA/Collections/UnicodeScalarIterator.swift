@@ -44,7 +44,7 @@ struct UnicodeScalarIterator {
             let byte = unsafe bytes[unchecked: byteIdx]
             bits |= UInt32(byte &+ 1) &<< (idx &<< 3)
         }
-        let scalar = UnicodeScalarIterator.decode(bits, utf8Count: scalarUTF8Length)
+        let scalar = UnicodeScalarIterator._decode(bits, utf8Count: scalarUTF8Length)
 
         let range = unsafe Range<Int>(
             uncheckedBounds: (lowerBound, self.currentCodeUnitOffset)
@@ -61,30 +61,35 @@ struct UnicodeScalarIterator {
         self.nextWithRange(in: bytes)?.codePoint
     }
 
-    @inline(__always)
     @inlinable
-    static func decode(_ bits: UInt32, utf8Count: Int) -> Unicode.Scalar {
-        switch utf8Count {
-        case 1:
-            return unsafe Unicode.Scalar(bits &- 0x01).unsafelyUnwrapped
-        case 2:
-            let bits = bits &- 0x0101
-            var value = (bits & 0b0_______________________11_1111__0000_0000) &>> 8
-            value |= (bits & 0b0________________________________0001_1111) &<< 6
-            return unsafe Unicode.Scalar(value).unsafelyUnwrapped
-        case 3:
-            let bits = bits &- 0x010101
-            var value = (bits & 0b0____________11_1111__0000_0000__0000_0000) &>> 16
-            value |= (bits & 0b0_______________________11_1111__0000_0000) &>> 2
-            value |= (bits & 0b0________________________________0000_1111) &<< 12
-            return unsafe Unicode.Scalar(value).unsafelyUnwrapped
-        default:
-            let bits = bits &- 0x0101_0101
-            var value = (bits & 0b0_11_1111__0000_0000__0000_0000__0000_0000) &>> 24
-            value |= (bits & 0b0____________11_1111__0000_0000__0000_0000) &>> 10
-            value |= (bits & 0b0_______________________11_1111__0000_0000) &<< 4
-            value |= (bits & 0b0________________________________0000_0111) &<< 18
-            return unsafe Unicode.Scalar(value).unsafelyUnwrapped
-        }
+    static func _decode(_ bits: UInt32, utf8Count: Int) -> Unicode.Scalar {
+        let bitsSubtract: UInt32 = 0x0101_0101 &>> ((4 &- utf8Count) &* 8)
+        let bits = bits &- bitsSubtract
+
+        let _m1: UInt32 = 0b0_____________________________0111_1110
+        let m1: UInt32 = _m1 &>> utf8Count
+        let m2: UInt32 = 0b0________________11_1111_0000_0000_0000
+        let m3: UInt32 = 0b0___________11_1111_0000_0000_0000_0000
+        let m4: UInt32 = 0b0_11_1111_0000_0000_0000_0000_0000_0000
+
+        let m2Bits = bits &<< 4
+
+        /// y = 6x - 6; x = 1 -> y = 0; x = 2 -> y = 6; x = 3 -> y = 12; x = 4 -> y = 18
+        let s1 = 6 &* utf8Count &- 6
+        /// y = -6x + 24; x = 1 -> y = 18; x = 2 -> y = 12; x = 3 -> y = 6; x = 4 -> y = 0
+        let s2 = -6 &* utf8Count &+ 24
+        /// y = -6x + 34; x = 1 -> y = 28; x = 2 -> y = 22; x = 3 -> y = 16; x = 4 -> y = 10
+        let s3 = -6 &* utf8Count &+ 34
+        /// y = -6x + 48; x = 1 -> y = 42; x = 2 -> y = 36; x = 3 -> y = 30; x = 4 -> y = 24
+        let s4 = -6 &* utf8Count &+ 48
+
+        let r1 = (bits & m1) &<< s1
+        let r2 = (m2Bits & m2) &>> s2
+        let r3 = (bits & m3) &>> s3
+        let r4 = (bits & m4) &>> s4
+
+        let value = r1 | r2 | r3 | r4
+        let scalar = Unicode.Scalar(value)
+        return unsafe scalar.unsafelyUnwrapped
     }
 }
