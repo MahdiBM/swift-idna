@@ -232,10 +232,8 @@ enum Punycode {
                 for k in stride(from: Constants.base, to: .max, by: Int(Constants.base)) {
                     /// Above we check that input is not empty, so this is safe.
                     /// There are also extensive tests for this in the IDNATests.swift.
-                    guard
-                        let codePoint = unicodeScalarsIterator.next(in: inputBytesSpan),
-                        let digit = Punycode.mapUnicodeScalarToDigit(codePoint)
-                    else {
+                    let codePoint = unicodeScalarsIterator.uncheckedNext(in: inputBytesSpan)
+                    guard let digit = Punycode.mapUnicodeScalarToDigit(codePoint) else {
                         output.removeAll()
                         return false
                     }
