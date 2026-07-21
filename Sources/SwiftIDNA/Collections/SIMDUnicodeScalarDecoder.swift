@@ -84,26 +84,14 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
             let continuationByte2 = unsafe self.paddedWindowBytes[position &+ 2]
             let continuationByte3 = unsafe self.paddedWindowBytes[position &+ 3]
 
-            let scalarByteLength: UInt8 =
-                1 &+ (leadByte >= 0xC0 ? 1 : 0) &+ (leadByte >= 0xE0 ? 1 : 0)
-                &+ (leadByte >= 0xF0 ? 1 : 0)
-            unsafe self.scalarByteLengths[position] = scalarByteLength
-
-            let oneByteScalar = UInt32(leadByte)
-            let twoByteScalar =
-                (UInt32(leadByte & 0x1F) &<< 6) | UInt32(continuationByte1 & 0x3F)
-            let threeByteScalar =
-                (UInt32(leadByte & 0x0F) &<< 12) | (UInt32(continuationByte1 & 0x3F) &<< 6)
-                | UInt32(continuationByte2 & 0x3F)
-            let fourByteScalar =
-                (UInt32(leadByte & 0x07) &<< 18) | (UInt32(continuationByte1 & 0x3F) &<< 12)
-                | (UInt32(continuationByte2 & 0x3F) &<< 6) | UInt32(continuationByte3 & 0x3F)
-            unsafe self.scalarValues[position] =
-                leadByte < 0x80
-                ? oneByteScalar
-                : (leadByte < 0xE0
-                    ? twoByteScalar
-                    : (leadByte < 0xF0 ? threeByteScalar : fourByteScalar))
+            let (scalarUTF8Length, value) = UnicodeScalarIterator.decodeScalar(
+                leadByte: leadByte,
+                continuationByte1: continuationByte1,
+                continuationByte2: continuationByte2,
+                continuationByte3: continuationByte3
+            )
+            unsafe self.scalarByteLengths[position] = UInt8(truncatingIfNeeded: scalarUTF8Length)
+            unsafe self.scalarValues[position] = value
         }
     }
 }
