@@ -392,13 +392,13 @@ extension IDNA {
                 )
                 let windowEnd = windowStart &+ realCount
 
-                let spanWindowRange = unsafe Range<Int>(uncheckedBounds: (windowStart, windowEnd))
-                let spanWindow = unsafe span.extracting(unchecked: spanWindowRange)
-                if spanWindow.isASCII {
-                    requiredCapacity &+= realCount
-                    windowStart = windowEnd
-                    continue
-                }
+                // let spanWindowRange = unsafe Range<Int>(uncheckedBounds: (windowStart, windowEnd))
+                // let spanWindow = unsafe span.extracting(unchecked: spanWindowRange)
+                // if spanWindow.isASCII {
+                //     requiredCapacity &+= realCount
+                //     windowStart = windowEnd
+                //     continue
+                // }
 
                 let decodeRange = unsafe Range<Int>(
                     uncheckedBounds: (windowStart, windowStart &+ count)
@@ -444,15 +444,15 @@ extension IDNA {
                     )
                     let windowEnd = windowStart &+ realCount
 
-                    let spanWindowRange = unsafe Range<Int>(
-                        uncheckedBounds: (windowStart, windowEnd)
-                    )
-                    let spanWindow = unsafe span.extracting(unchecked: spanWindowRange)
-                    if spanWindow.isASCII {
-                        output.swift_idna_appendLowercasingASCII(copying: spanWindow)
-                        windowStart = windowEnd
-                        continue
-                    }
+                    // let spanWindowRange = unsafe Range<Int>(
+                    //     uncheckedBounds: (windowStart, windowEnd)
+                    // )
+                    // let spanWindow = unsafe span.extracting(unchecked: spanWindowRange)
+                    // if spanWindow.isASCII {
+                    //     output.swift_idna_appendLowercasingASCII(copying: spanWindow)
+                    //     windowStart = windowEnd
+                    //     continue
+                    // }
 
                     let decodeRange = unsafe Range<Int>(
                         uncheckedBounds: (windowStart, windowStart &+ count)
