@@ -405,8 +405,10 @@ extension IDNA {
                 var p = windowStart
                 while p < windowEnd {
                     let localIndex = p &- windowStart
-                    let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[localIndex])
-                    let scalar = unsafe Unicode.Scalar(decoder.scalarValues[localIndex])
+                    let scalarUTF8Length = Int(
+                        unsafe decoder.scalarUTF8Lengths[unchecked: localIndex]
+                    )
+                    let scalar = unsafe Unicode.Scalar(decoder.scalarValues[unchecked: localIndex])
                         .unsafelyUnwrapped
                     let mapping = IDNAMapping.for(scalar: scalar)
                     switch mapping.tag {
@@ -453,9 +455,11 @@ extension IDNA {
                     var p = windowStart
                     while p < windowEnd {
                         let localIndex = p &- windowStart
-                        let scalarUTF8Length = Int(unsafe decoder.scalarByteLengths[localIndex])
+                        let scalarUTF8Length = Int(
+                            unsafe decoder.scalarUTF8Lengths[unchecked: localIndex]
+                        )
                         let scalar = unsafe Unicode.Scalar(
-                            decoder.scalarValues[localIndex]
+                            decoder.scalarValues[unchecked: localIndex]
                         ).unsafelyUnwrapped
                         let mapping = IDNAMapping.for(scalar: scalar)
                         switch mapping.tag {
