@@ -420,15 +420,7 @@ extension IDNA {
             newBytes.append(exactExtraRequiredCapacity: requiredCapacity) { output in
                 var windowStart = 0
                 while windowStart < count {
-                    let realCount = Swift.min(
-                        SIMDUnicodeScalarDecoder.windowSize,
-                        count &- windowStart
-                    )
-                    let windowEnd = windowStart &+ realCount
-                    let decodeRange = unsafe Range<Int>(
-                        uncheckedBounds: (windowStart, windowStart &+ count)
-                    )
-                    decoder.decodeWindow(of: span, range: decodeRange)
+                    let windowEnd = decoder.decodeNextWindow(of: span, windowStart: windowStart)
 
                     var i = windowStart
                     while i < windowEnd {
