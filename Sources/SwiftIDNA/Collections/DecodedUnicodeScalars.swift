@@ -70,17 +70,20 @@ extension DecodedUnicodeScalars {
             if range.lowerBound == 0 {
                 self.startIndex = 0
             } else {
-                for idx in self.endIndex..<scalarsCount {
+                var idx = self.endIndex
+                while idx < scalarsCount {
                     let scalar = unsafe self.scalars[unchecked: idx]
                     byteOffset &+= scalar.utf8.count
                     if byteOffset == range.lowerBound {
                         self.startIndex = idx &+ 1
                         break
                     }
+                    idx &+= 1
                 }
             }
 
-            for idx in self.startIndex..<scalarsCount {
+            var idx = self.startIndex
+            while idx < scalarsCount {
                 let scalar = unsafe self.scalars[unchecked: idx]
                 byteOffset &+= scalar.utf8.count
                 if byteOffset == range.upperBound {
@@ -88,6 +91,7 @@ extension DecodedUnicodeScalars {
                     self.endIndexByteOffset = byteOffset
                     break
                 }
+                idx &+= 1
             }
         }
 

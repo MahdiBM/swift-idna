@@ -107,6 +107,23 @@ enum TinyBuffer: ~Copyable, ~Escapable {
         }
     }
 
+    /// Reserves `preferredCapacity` of real capacity, moving to the heap if it will not fit
+    @inlinable
+    mutating func reserveCapacity(_ preferredCapacity: Int) {
+        switch consume self {
+        case .inline(let elements):
+            if preferredCapacity > InlineElements.maximumCapacity {
+                let array = UniqueArray(copying: elements, capacity: preferredCapacity)
+                self = .heap(array)
+            } else {
+                self = .inline(elements)
+            }
+        case .heap(var array):
+            array.reserveCapacity(preferredCapacity)
+            self = .heap(array)
+        }
+    }
+
     /// Appends the given element to the buffer.
     /// Assumes the buffer has enough capacity to hold the element.
     @inlinable

@@ -104,17 +104,20 @@ enum Punycode {
         while loopIdx < scalarsCount {
             var m: UInt32 = .max
 
-            for idx in 0..<scalarsCount {
+            var idx = 0
+            while idx < scalarsCount {
                 let codePoint = decodedUnicodeScalars[idx]
                 if !codePoint.isASCII, codePoint.value >= n {
                     m = min(m, codePoint.value)
                 }
+                idx &+= 1
             }
 
             delta &+= ((m &- n) &* (h &+ 1))
 
             n = m
-            for idx in 0..<scalarsCount {
+            idx = 0
+            while idx < scalarsCount {
                 let codePoint = decodedUnicodeScalars[idx]
                 if codePoint.value < n || codePoint.isASCII {
                     delta &+= 1
@@ -153,6 +156,7 @@ enum Punycode {
                     /// Skip one unicode scalar
                     loopIdx &+= 1
                 }
+                idx &+= 1
             }
             delta &+= 1
             n &+= 1
@@ -220,8 +224,10 @@ enum Punycode {
         return unicodeScalarsIndexToUTF8Index.withRigidArrayOutputSpan {
             unicodeScalarsIndexToUTF8Index in
 
-            for idx in 0..<output.count {
+            var idx = 0
+            while idx < output.count {
                 unsafe unicodeScalarsIndexToUTF8Index[unchecked: idx] = idx
+                idx &+= 1
             }
             var unicodeScalarsIndexToUTF8IndexCount = output.count
 
@@ -290,8 +296,10 @@ enum Punycode {
                 unicodeScalarsIndexToUTF8Index.swift_idna_insert(toInsert, at: iInt)
                 unicodeScalarsIndexToUTF8IndexCount &+= 1
 
-                for idx in (iInt &+ 1)..<unicodeScalarsIndexToUTF8IndexCount {
+                var idx = iInt &+ 1
+                while idx < unicodeScalarsIndexToUTF8IndexCount {
                     unsafe unicodeScalarsIndexToUTF8Index[unchecked: idx] &+= utf8Count
+                    idx &+= 1
                 }
 
                 i &+= 1

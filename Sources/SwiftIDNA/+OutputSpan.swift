@@ -6,12 +6,42 @@ extension OutputSpan<UInt8> {
         let appendCount = span.count
         if appendCount == 0 { return }
         let usedCapacity = self.count
-        let capacity = self.capacity
         unsafe self.withUnsafeMutableBufferPointer { buffer, initializedCount in
             span.withUnsafeBytes { spanPtr in
-                let range = unsafe Range<Int>(uncheckedBounds: (usedCapacity, capacity))
-                let target = buffer.extracting(range)
-                _ = unsafe target.initialize(fromContentsOf: spanPtr)
+                let target = unsafe UnsafeMutableRawPointer(
+                    buffer.baseAddress.unsafelyUnwrapped
+                ).advanced(by: usedCapacity)
+                unsafe target.copyMemory(
+                    from: spanPtr.baseAddress.unsafelyUnwrapped,
+                    byteCount: appendCount
+                )
+            }
+            initializedCount = usedCapacity &+ appendCount
+        }
+    }
+}
+
+@available(SwiftStdlib 5.1, *)
+extension OutputSpan<UInt8> {
+    /// Appends the given span to the output span, lowercasing any uppercased ASCII letters.
+    ///
+    /// The caller guarantees the span contains only ASCII bytes, so this is exactly the IDNA
+    /// mapping for those bytes (A-Z map to their lowercase; every other ASCII byte is valid
+    /// and copies unchanged). The per-byte transform loop is auto-vectorized by LLVM.
+    @inlinable
+    mutating func swift_idna_appendLowercasingASCII(copying span: Span<UInt8>) {
+        let appendCount = span.count
+        if appendCount == 0 { return }
+        let usedCapacity = self.count
+        unsafe self.withUnsafeMutableBufferPointer { buffer, initializedCount in
+            span.withUnsafeBytes { spanPtr in
+                var i = 0
+                while i < appendCount {
+                    let byte = unsafe spanPtr[i]
+                    let isUpper = byte >= 0x41 && byte <= 0x5A
+                    unsafe buffer[usedCapacity &+ i] = isUpper ? byte | 0b0010_0000 : byte
+                    i &+= 1
+                }
             }
             initializedCount = usedCapacity &+ appendCount
         }

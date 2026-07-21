@@ -26,7 +26,9 @@ extension IDNA {
                     _uncheckedAssumingValidUTF8: span,
                     reuseBuffer: &convertedBytes,
                     output: &processedBytes,
-                    errors: &errors
+                    errors: &errors,
+                    /// The SIMD decoder regresses this larger toASCII path; use the per-scalar one.
+                    useSIMDDecoder: false
                 )
 
                 // 2., 3.
@@ -231,7 +233,9 @@ extension IDNA {
                     _uncheckedAssumingValidUTF8: span,
                     reuseBuffer: &reuseBuffer,
                     output: &utf8Bytes,
-                    errors: &errors
+                    errors: &errors,
+                    /// The SIMD decoder wins on this smaller toUnicode path.
+                    useSIMDDecoder: true
                 )
 
                 return utf8Bytes.takeAsConversionResult()
@@ -249,24 +253,26 @@ extension IDNA {
     /// Main `Processing` IDNA implementation.
     /// https://www.unicode.org/reports/tr46/#Processing
     @inlinable
+    @inline(__always)
     func mainProcessing(
         _uncheckedAssumingValidUTF8 span: Span<UInt8>,
         reuseBuffer newBytes: inout TinyBuffer,
         output newerBytes: inout TinyBuffer,
-        errors: inout MappingErrors
+        errors: inout MappingErrors,
+        useSIMDDecoder: Bool
     ) {
         /// 1. Map
         self.mapToIDNAMappings(
             _uncheckedAssumingValidUTF8: span,
-            into: &newBytes
+            into: &newBytes,
+            useSIMDDecoder: useSIMDDecoder
         )
 
         /// 2. Normalize
 
         /// Make `newBytes` NFC, if not already NFC
         newBytes._uncheckedAssumingValidUTF8_ensureNFC()
-
-        newerBytes.preferablyReserveCapacity(newBytes.count)
+        newerBytes.reserveCapacity(newBytes.count)
 
         newBytes.withSpan { newBytesSpan in
             let maxRequiredCapacityForAllLabels = self.maxLabelLength(span: newBytesSpan)
@@ -309,7 +315,22 @@ extension IDNA {
 
     /// Maps the given span to IDNA mappings.
     @inlinable
+    @inline(__always)
     func mapToIDNAMappings(
+        _uncheckedAssumingValidUTF8 span: Span<UInt8>,
+        into newBytes: inout TinyBuffer,
+        useSIMDDecoder: Bool
+    ) {
+        if useSIMDDecoder {
+            self.mapToIDNAMappings_SIMD(_uncheckedAssumingValidUTF8: span, into: &newBytes)
+        } else {
+            self.mapToIDNAMappings_Scalar(_uncheckedAssumingValidUTF8: span, into: &newBytes)
+        }
+    }
+
+    @inlinable
+    @inline(__always)
+    func mapToIDNAMappings_Scalar(
         _uncheckedAssumingValidUTF8 span: Span<UInt8>,
         into newBytes: inout TinyBuffer
     ) {
@@ -348,6 +369,111 @@ extension IDNA {
                     output.swift_idna_append(copying: mapping.mappedScalars.utf8BytesSpan)
                 case .ignored:
                     ()
+                }
+            }
+        }
+    }
+
+    @inlinable
+    @inline(__always)
+    func mapToIDNAMappings_SIMD(
+        _uncheckedAssumingValidUTF8 span: Span<UInt8>,
+        into newBytes: inout TinyBuffer
+    ) {
+        let count = span.count
+        var requiredCapacity = 0
+
+        SIMDUnicodeScalarDecoder.withDecoder { decoder in
+            var windowStart = 0
+            while windowStart < count {
+                let realCount = Swift.min(
+                    SIMDUnicodeScalarDecoder.windowSize,
+                    count &- windowStart
+                )
+                let windowEnd = windowStart &+ realCount
+
+                let spanWindowRange = unsafe Range<Int>(uncheckedBounds: (windowStart, windowEnd))
+                let spanWindow = unsafe span.extracting(unchecked: spanWindowRange)
+                if spanWindow.isASCII {
+                    requiredCapacity &+= realCount
+                    windowStart = windowEnd
+                    continue
+                }
+
+                decoder.decodeWindow(of: span, start: windowStart, inputCount: count)
+
+                var p = windowStart
+                while p < windowEnd {
+                    let localIndex = p &- windowStart
+                    let scalarUTF8Length = Int(unsafe decoder.scalarByteLengths[localIndex])
+                    let scalar = unsafe Unicode.Scalar(decoder.scalarValues[localIndex])
+                        .unsafelyUnwrapped
+                    let mapping = IDNAMapping.for(scalar: scalar)
+                    switch mapping.tag {
+                    case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
+                        requiredCapacity &+= scalarUTF8Length
+                    case .mapped:
+                        requiredCapacity &+= mapping.mappedScalars.utf8BytesSpan.count
+                    case .ignored:
+                        ()
+                    }
+                    p &+= scalarUTF8Length
+                }
+
+                windowStart = p
+            }
+
+            /// I'm expecting this to be empty at this point, nothing special.
+            /// Tests will immediately crash if this is not the case.
+            assert(newBytes.isEmpty)
+
+            /// Reserve the exact required capacity up front so we can skip further capacity
+            /// checks because we're guaranteed to have enough capacity.
+            newBytes.append(exactExtraRequiredCapacity: requiredCapacity) { output in
+                var windowStart = 0
+                while windowStart < count {
+                    let realCount = Swift.min(
+                        SIMDUnicodeScalarDecoder.windowSize,
+                        count &- windowStart
+                    )
+                    let windowEnd = windowStart &+ realCount
+
+                    let spanWindowRange = unsafe Range<Int>(
+                        uncheckedBounds: (windowStart, windowEnd)
+                    )
+                    let spanWindow = unsafe span.extracting(unchecked: spanWindowRange)
+                    if spanWindow.isASCII {
+                        output.swift_idna_appendLowercasingASCII(copying: spanWindow)
+                        windowStart = windowEnd
+                        continue
+                    }
+
+                    decoder.decodeWindow(of: span, start: windowStart, inputCount: count)
+
+                    var p = windowStart
+                    while p < windowEnd {
+                        let localIndex = p &- windowStart
+                        let scalarUTF8Length = Int(unsafe decoder.scalarByteLengths[localIndex])
+                        let scalar = unsafe Unicode.Scalar(
+                            decoder.scalarValues[localIndex]
+                        ).unsafelyUnwrapped
+                        let mapping = IDNAMapping.for(scalar: scalar)
+                        switch mapping.tag {
+                        case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
+                            let scalarRange = unsafe Range<Int>(
+                                uncheckedBounds: (p, p &+ scalarUTF8Length)
+                            )
+                            let scalarBytesSpan = unsafe span.extracting(unchecked: scalarRange)
+                            output.swift_idna_append(copying: scalarBytesSpan)
+                        case .mapped:
+                            output.swift_idna_append(copying: mapping.mappedScalars.utf8BytesSpan)
+                        case .ignored:
+                            ()
+                        }
+                        p &+= scalarUTF8Length
+                    }
+
+                    windowStart = p
                 }
             }
         }
@@ -601,8 +727,10 @@ extension IDNA {
     func convertToLowercasedASCII(_uncheckedAssumingValidUTF8 span: Span<UInt8>) -> String {
         let count = span.count
         return unsafe String(unsafeUninitializedCapacity_Compatibility: count) { buffer in
-            for idx in 0..<count {
+            var idx = 0
+            while idx < count {
                 unsafe buffer[idx] = span[unchecked: idx].toLowercasedASCIILetter()
+                idx &+= 1
             }
             return count
         }

@@ -93,12 +93,7 @@ struct IDNATestV2Case {
         }
     }
 
-    static func allCases() -> [IDNATestV2Case] {
-        var count: Int = 0
-        guard let ptr = unsafe cswift_idna_test_v2_all_cases(&count) else {
-            fatalError("Failed to get IDNA Test V2 cases")
-        }
-        let allUnicodeCases = (0..<count).map { i in unsafe IDNATestV2Case(from: ptr[i]) }
+    private static var customCases: [IDNATestV2Case] {
         let massiveASCII = massivePunyCodeStrings.ascii
         let massiveUnicode = massivePunyCodeStrings.unicode
         let asciiString =
@@ -122,8 +117,29 @@ struct IDNATestV2Case {
                 toAsciiN: asciiString,
                 toAsciiNStatus: [.A4_2]
             ),
+            /// This reproduces an impl issue that was caught in dev stage (before merge).
+            IDNATestV2Case(
+                source: "мойассистент.рф",
+                toUnicode: "мойассистент.рф",
+                toUnicodeStatus: [],
+                toAsciiN: "xn--80akicokc0aablc.xn--p1ai",
+                toAsciiNStatus: []
+            ),
         ]
-        return allUnicodeCases + customCases
+        return customCases
+    }
+
+    private static func allUnicodeCases() -> [IDNATestV2Case] {
+        var count: Int = 0
+        guard let ptr = unsafe cswift_idna_test_v2_all_cases(&count) else {
+            fatalError("Failed to get IDNA Test V2 cases")
+        }
+        let all = (0..<count).map { i in unsafe IDNATestV2Case(from: ptr[i]) }
+        return all
+    }
+
+    private static func allCases() -> [IDNATestV2Case] {
+        Self.customCases + allUnicodeCases()
     }
 
     /// This is better for debuggability.
