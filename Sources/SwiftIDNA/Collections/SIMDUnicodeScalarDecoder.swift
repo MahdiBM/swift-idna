@@ -12,6 +12,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     static var tempBytesSize: Int { Self.windowSize &+ 3 }
 
     /// Temp storage for faster speculative decoding.
+    /// Initialized to zeros via `withTemporaryDecoder(_:)`.
     /// Of length `Self.tempBytesSize`.
     @usableFromInline
     var tempBytes: MutableSpan<UInt8>
@@ -71,7 +72,9 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     mutating func _decodeWindow(of encodedBytes: Span<UInt8>) {
         assert(encodedBytes.count >= 0 && encodedBytes.count <= Self.tempBytesSize)
 
-        /// Write `encodedBytes` into `tempBytes`. The pad bytes are not important.
+        /// Write `encodedBytes` into `tempBytes`.
+        /// `tempBytes` has initialized above so it's valid via `tempBytes.initialize(repeating: 0)`.
+        /// The pad bytes are not important.
         tempBytes.withUnsafeMutableBufferPointer { temp in
             encodedBytes.withUnsafeBufferPointer { encoded in
                 let rawTemp = UnsafeMutableRawBufferPointer(temp)
