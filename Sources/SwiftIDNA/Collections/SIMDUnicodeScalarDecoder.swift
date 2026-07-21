@@ -12,7 +12,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// The current window's bytes plus 3 additional bytes for speculative decoding.
     /// Of length `Self.windowSize &+ 3`.
     @usableFromInline
-    var paddedWindowBytes: MutableSpan<UInt8>
+    var windowBytes: MutableSpan<UInt8>
     /// Decoded UTF-8 byte length (1...4) per window position.
     /// Of length `Self.windowSize`.
     @usableFromInline
@@ -20,16 +20,16 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Decoded scalar value per window position.
     /// Of length `Self.windowSize`.
     @usableFromInline
-    var scalarValues: MutableSpan<UInt32>
+    var scalarValues: MutableSpan<Unicode.Scalar>
 
     @inlinable
-    @_lifetime(copy paddedWindowBytes, copy scalarUTF8Lengths, copy scalarValues)
+    @_lifetime(copy windowBytes, copy scalarUTF8Lengths, copy scalarValues)
     init(
-        paddedWindowBytes: consuming MutableSpan<UInt8>,
+        windowBytes: consuming MutableSpan<UInt8>,
         scalarUTF8Lengths: consuming MutableSpan<UInt8>,
-        scalarValues: consuming MutableSpan<UInt32>
+        scalarValues: consuming MutableSpan<Unicode.Scalar>
     ) {
-        self.paddedWindowBytes = paddedWindowBytes
+        self.windowBytes = windowBytes
         self.scalarUTF8Lengths = scalarUTF8Lengths
         self.scalarValues = scalarValues
     }
@@ -43,17 +43,17 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
         try withUnsafeTemporaryAllocation(
             of: UInt8.self,
             capacity: Self.windowSize &+ 3
-        ) { paddedWindowBytes throws(Failure) -> R in
+        ) { windowBytes throws(Failure) -> R in
             try withUnsafeTemporaryAllocation(
                 of: UInt8.self,
                 capacity: Self.windowSize
             ) { scalarUTF8Lengths throws(Failure) -> R in
                 try withUnsafeTemporaryAllocation(
-                    of: UInt32.self,
+                    of: Unicode.Scalar.self,
                     capacity: Self.windowSize
                 ) { scalarValues throws(Failure) -> R in
                     var decoder = unsafe SIMDUnicodeScalarDecoder(
-                        paddedWindowBytes: paddedWindowBytes.mutableSpan,
+                        windowBytes: windowBytes.mutableSpan,
                         scalarUTF8Lengths: scalarUTF8Lengths.mutableSpan,
                         scalarValues: scalarValues.mutableSpan
                     )
@@ -68,24 +68,24 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
         let copyCount = Swift.min(Self.windowSize &+ 3, range.count)
         var i = 0
         while i < copyCount {
-            unsafe self.paddedWindowBytes[unchecked: i] = bytes[unchecked: range.lowerBound &+ i]
+            unsafe self.windowBytes[unchecked: i] = bytes[unchecked: range.lowerBound &+ i]
             i &+= 1
         }
         while i < (Self.windowSize &+ 3) {
-            unsafe self.paddedWindowBytes[unchecked: i] = 0
+            unsafe self.windowBytes[unchecked: i] = 0
             i &+= 1
         }
 
         /// This loop is auto-vectorized by LLVM.
         for position in 0..<Self.windowSize {
-            let leadByte = unsafe self.paddedWindowBytes[unchecked: position]
+            let leadByte = unsafe self.windowBytes[unchecked: position]
             /// We have 3 extra bytes for speculative decoding so we won't run out of bytes.
-            /// See `paddedWindowBytes` doc comments.
-            let continuationByte1 = unsafe self.paddedWindowBytes[unchecked: position &+ 1]
-            let continuationByte2 = unsafe self.paddedWindowBytes[unchecked: position &+ 2]
-            let continuationByte3 = unsafe self.paddedWindowBytes[unchecked: position &+ 3]
+            /// See `windowBytes` doc comments.
+            let continuationByte1 = unsafe self.windowBytes[unchecked: position &+ 1]
+            let continuationByte2 = unsafe self.windowBytes[unchecked: position &+ 2]
+            let continuationByte3 = unsafe self.windowBytes[unchecked: position &+ 3]
 
-            let (scalarUTF8Length, value) = UnicodeScalarIterator.decodeScalar(
+            let (scalarUTF8Length, scalar) = UnicodeScalarIterator.decodeScalarUnchecked(
                 leadByte: leadByte,
                 continuationByte1: continuationByte1,
                 continuationByte2: continuationByte2,
@@ -94,7 +94,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
             unsafe self.scalarUTF8Lengths[unchecked: position] = UInt8(
                 truncatingIfNeeded: scalarUTF8Length
             )
-            unsafe self.scalarValues[unchecked: position] = value
+            unsafe self.scalarValues[unchecked: position] = scalar
         }
     }
 }

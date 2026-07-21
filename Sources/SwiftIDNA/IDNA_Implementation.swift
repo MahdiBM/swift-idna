@@ -405,14 +405,14 @@ extension IDNA {
                 )
                 decoder.decodeWindow(of: span, range: decodeRange)
 
-                var p = windowStart
-                while p < windowEnd {
-                    let localIndex = p &- windowStart
+                var i = windowStart
+                while i < windowEnd {
+                    let localIndex = i &- windowStart
                     let scalarUTF8Length = Int(
                         unsafe decoder.scalarUTF8Lengths[unchecked: localIndex]
                     )
-                    let scalar = unsafe Unicode.Scalar(decoder.scalarValues[unchecked: localIndex])
-                        .unsafelyUnwrapped
+                    let scalar = unsafe decoder.scalarValues[unchecked: localIndex]
+
                     let mapping = IDNAMapping.for(scalar: scalar)
                     switch mapping.tag {
                     case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
@@ -422,10 +422,11 @@ extension IDNA {
                     case .ignored:
                         ()
                     }
-                    p &+= scalarUTF8Length
+
+                    i &+= scalarUTF8Length
                 }
 
-                windowStart = p
+                windowStart = i
             }
 
             /// I'm expecting this to be empty at this point, nothing special.
@@ -458,20 +459,19 @@ extension IDNA {
                     )
                     decoder.decodeWindow(of: span, range: decodeRange)
 
-                    var p = windowStart
-                    while p < windowEnd {
-                        let localIndex = p &- windowStart
+                    var i = windowStart
+                    while i < windowEnd {
+                        let localIndex = i &- windowStart
                         let scalarUTF8Length = Int(
                             unsafe decoder.scalarUTF8Lengths[unchecked: localIndex]
                         )
-                        let scalar = unsafe Unicode.Scalar(
-                            decoder.scalarValues[unchecked: localIndex]
-                        ).unsafelyUnwrapped
+                        let scalar = unsafe decoder.scalarValues[unchecked: localIndex]
+
                         let mapping = IDNAMapping.for(scalar: scalar)
                         switch mapping.tag {
                         case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
                             let scalarRange = unsafe Range<Int>(
-                                uncheckedBounds: (p, p &+ scalarUTF8Length)
+                                uncheckedBounds: (i, i &+ scalarUTF8Length)
                             )
                             let scalarBytesSpan = unsafe span.extracting(unchecked: scalarRange)
                             output.swift_idna_append(copying: scalarBytesSpan)
@@ -480,10 +480,11 @@ extension IDNA {
                         case .ignored:
                             ()
                         }
-                        p &+= scalarUTF8Length
+
+                        i &+= scalarUTF8Length
                     }
 
-                    windowStart = p
+                    windowStart = i
                 }
             }
         }

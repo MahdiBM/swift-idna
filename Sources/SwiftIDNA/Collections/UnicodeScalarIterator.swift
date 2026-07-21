@@ -25,7 +25,7 @@ struct UnicodeScalarIterator {
         let continuationByte2 = unsafe bytes[unchecked: Swift.min(lowerBound &+ 2, lastIndex)]
         let continuationByte3 = unsafe bytes[unchecked: Swift.min(lowerBound &+ 3, lastIndex)]
 
-        let (scalarUTF8Length, value) = Self.decodeScalar(
+        let (scalarUTF8Length, scalar) = Self.decodeScalarUnchecked(
             leadByte: leadByte,
             continuationByte1: continuationByte1,
             continuationByte2: continuationByte2,
@@ -33,30 +33,31 @@ struct UnicodeScalarIterator {
         )
         self.currentCodeUnitOffset = lowerBound &+ scalarUTF8Length
 
-        return unsafe Unicode.Scalar(value).unsafelyUnwrapped
+        return scalar
     }
 
     @inline(__always)
     @inlinable
-    static func decodeScalar(
+    static func decodeScalarUnchecked(
         leadByte: UInt8,
         continuationByte1: UInt8,
         continuationByte2: UInt8,
         continuationByte3: UInt8
-    ) -> (scalarUTF8Length: Int, value: UInt32) {
+    ) -> (scalarUTF8Length: Int, value: Unicode.Scalar) {
         /// Count of leading ones in the first byte: 0 for ASCII, else the scalar's byte-length
         let leadingOnes = Swift.min(4, (~leadByte).leadingZeroBitCount)
         let scalarUTF8Length = Swift.max(1, leadingOnes)
 
-        let lead = UInt32(leadByte & (0b0111_1111 &>> leadingOnes)) &<< 18
+        let leadNoLengthBits = UInt32(leadByte & (0b0111_1111 &>> leadingOnes)) &<< 18
         let c1 = UInt32(continuationByte1 & 0b0011_1111) &<< 12
         let c2 = UInt32(continuationByte2 & 0b0011_1111) &<< 6
         let c3 = UInt32(continuationByte3 & 0b0011_1111)
 
         let shift = 6 &* (4 &- scalarUTF8Length)
-        let value = (lead | ((c1 | c2) | c3)) &>> shift
+        let value = (leadNoLengthBits | c1 | c2 | c3) &>> shift
 
-        return (scalarUTF8Length, value)
+        let scalar = unsafe Unicode.Scalar(value).unsafelyUnwrapped
+        return (scalarUTF8Length, scalar)
     }
 
     /// Decodes and returns the next Unicode scalar.
