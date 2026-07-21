@@ -64,7 +64,8 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     }
 
     @inlinable
-    mutating func decodeWindow(of bytes: Span<UInt8>, range: Range<Int>) {
+    @inline(__always)
+    mutating func _decodeWindow(of bytes: Span<UInt8>, range: Range<Int>) {
         let copyCount = Swift.min(Self.windowSize &+ 3, range.count)
         var i = 0
         while i < copyCount {
@@ -96,5 +97,23 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
             )
             unsafe self.scalarValues[unchecked: position] = scalar
         }
+    }
+
+    /// Returns window end index.
+    @inlinable
+    @inline(__always)
+    mutating func decodeNextWindow(
+        of bytes: Span<UInt8>,
+        windowStart: Int
+    ) -> Int {
+        let totalCount = bytes.count
+        let maxCount = totalCount &- windowStart
+        let realCount = Swift.min(SIMDUnicodeScalarDecoder.windowSize, maxCount)
+        let windowEnd = windowStart &+ realCount
+        let decodeRange = unsafe Range<Int>(
+            uncheckedBounds: (windowStart, windowStart &+ totalCount)
+        )
+        self._decodeWindow(of: bytes, range: decodeRange)
+        return windowEnd
     }
 }

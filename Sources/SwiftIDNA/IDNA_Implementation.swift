@@ -384,34 +384,16 @@ extension IDNA {
         var requiredCapacity = 0
 
         SIMDUnicodeScalarDecoder.withDecoder { decoder in
+            /// Process windows of size `SIMDUnicodeScalarDecoder.windowSize`, one by one.
             var windowStart = 0
             while windowStart < count {
-                let realCount = Swift.min(
-                    SIMDUnicodeScalarDecoder.windowSize,
-                    count &- windowStart
-                )
-                let windowEnd = windowStart &+ realCount
-
-                // let spanWindowRange = unsafe Range<Int>(uncheckedBounds: (windowStart, windowEnd))
-                // let spanWindow = unsafe span.extracting(unchecked: spanWindowRange)
-                // if spanWindow.isASCII {
-                //     requiredCapacity &+= realCount
-                //     windowStart = windowEnd
-                //     continue
-                // }
-
-                let decodeRange = unsafe Range<Int>(
-                    uncheckedBounds: (windowStart, windowStart &+ count)
-                )
-                decoder.decodeWindow(of: span, range: decodeRange)
+                let windowEnd = decoder.decodeNextWindow(of: span, windowStart: windowStart)
 
                 var i = windowStart
                 while i < windowEnd {
-                    let localIndex = i &- windowStart
-                    let scalarUTF8Length = Int(
-                        unsafe decoder.scalarUTF8Lengths[unchecked: localIndex]
-                    )
-                    let scalar = unsafe decoder.scalarValues[unchecked: localIndex]
+                    let idx = i &- windowStart
+                    let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
+                    let scalar = unsafe decoder.scalarValues[unchecked: idx]
 
                     let mapping = IDNAMapping.for(scalar: scalar)
                     switch mapping.tag {
@@ -443,17 +425,6 @@ extension IDNA {
                         count &- windowStart
                     )
                     let windowEnd = windowStart &+ realCount
-
-                    // let spanWindowRange = unsafe Range<Int>(
-                    //     uncheckedBounds: (windowStart, windowEnd)
-                    // )
-                    // let spanWindow = unsafe span.extracting(unchecked: spanWindowRange)
-                    // if spanWindow.isASCII {
-                    //     output.swift_idna_appendLowercasingASCII(copying: spanWindow)
-                    //     windowStart = windowEnd
-                    //     continue
-                    // }
-
                     let decodeRange = unsafe Range<Int>(
                         uncheckedBounds: (windowStart, windowStart &+ count)
                     )
@@ -461,11 +432,9 @@ extension IDNA {
 
                     var i = windowStart
                     while i < windowEnd {
-                        let localIndex = i &- windowStart
-                        let scalarUTF8Length = Int(
-                            unsafe decoder.scalarUTF8Lengths[unchecked: localIndex]
-                        )
-                        let scalar = unsafe decoder.scalarValues[unchecked: localIndex]
+                        let idx = i &- windowStart
+                        let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
+                        let scalar = unsafe decoder.scalarValues[unchecked: idx]
 
                         let mapping = IDNAMapping.for(scalar: scalar)
                         switch mapping.tag {
