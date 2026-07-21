@@ -400,7 +400,10 @@ extension IDNA {
                     continue
                 }
 
-                decoder.decodeWindow(of: span, start: windowStart, inputCount: count)
+                let decodeRange = unsafe Range<Int>(
+                    uncheckedBounds: (windowStart, windowStart &+ count)
+                )
+                decoder.decodeWindow(of: span, range: decodeRange)
 
                 var p = windowStart
                 while p < windowEnd {
@@ -450,7 +453,10 @@ extension IDNA {
                         continue
                     }
 
-                    decoder.decodeWindow(of: span, start: windowStart, inputCount: count)
+                    let decodeRange = unsafe Range<Int>(
+                        uncheckedBounds: (windowStart, windowStart &+ count)
+                    )
+                    decoder.decodeWindow(of: span, range: decodeRange)
 
                     var p = windowStart
                     while p < windowEnd {

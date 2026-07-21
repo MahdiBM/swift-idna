@@ -63,13 +63,12 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
         }
     }
 
-    /// Decodes the window starting at `start` of `bytes`.
     @inlinable
-    mutating func decodeWindow(of bytes: Span<UInt8>, start: Int, inputCount: Int) {
-        let copyCount = Swift.min(Self.windowSize &+ 3, inputCount &- start)
+    mutating func decodeWindow(of bytes: Span<UInt8>, range: Range<Int>) {
+        let copyCount = Swift.min(Self.windowSize &+ 3, range.count)
         var i = 0
         while i < copyCount {
-            unsafe self.paddedWindowBytes[unchecked: i] = bytes[unchecked: start &+ i]
+            unsafe self.paddedWindowBytes[unchecked: i] = bytes[unchecked: range.lowerBound &+ i]
             i &+= 1
         }
         while i < (Self.windowSize &+ 3) {
@@ -80,6 +79,8 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
         /// This loop is auto-vectorized by LLVM.
         for position in 0..<Self.windowSize {
             let leadByte = unsafe self.paddedWindowBytes[unchecked: position]
+            /// We have 3 extra bytes for speculative decoding so we won't run out of bytes.
+            /// See `paddedWindowBytes` doc comments.
             let continuationByte1 = unsafe self.paddedWindowBytes[unchecked: position &+ 1]
             let continuationByte2 = unsafe self.paddedWindowBytes[unchecked: position &+ 2]
             let continuationByte3 = unsafe self.paddedWindowBytes[unchecked: position &+ 3]
