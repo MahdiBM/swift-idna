@@ -3,16 +3,18 @@
 /// Only pass the same span to any single decode/walk sequence; tests will fail otherwise.
 @available(SwiftStdlib 5.1, *)
 @usableFromInline
-@safe
 struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Bytes decoded per window. Matches the natural byte-vector width.
     @usableFromInline
     static var windowSize: Int { 16 }
-
-    /// The current window's bytes plus 3 additional bytes for speculative decoding.
-    /// Of length `Self.windowSize &+ 3`.
+    /// Extra bytes for speculative decoding.
     @usableFromInline
-    var windowBytes: MutableSpan<UInt8>
+    static var tempBytesSize: Int { Self.windowSize &+ 3 }
+
+    /// Temp storage for faster speculative decoding.
+    /// Of length `Self.tempBytesSize`.
+    @usableFromInline
+    var tempBytes: MutableSpan<UInt8>
     /// Decoded UTF-8 byte length (1...4) per window position.
     /// Of length `Self.windowSize`.
     @usableFromInline
@@ -23,13 +25,13 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     var scalarValues: MutableSpan<Unicode.Scalar>
 
     @inlinable
-    @_lifetime(copy windowBytes, copy scalarUTF8Lengths, copy scalarValues)
+    @_lifetime(copy tempBytes, copy scalarUTF8Lengths, copy scalarValues)
     init(
-        windowBytes: consuming MutableSpan<UInt8>,
+        tempBytes: consuming MutableSpan<UInt8>,
         scalarUTF8Lengths: consuming MutableSpan<UInt8>,
         scalarValues: consuming MutableSpan<Unicode.Scalar>
     ) {
-        self.windowBytes = windowBytes
+        self.tempBytes = tempBytes
         self.scalarUTF8Lengths = scalarUTF8Lengths
         self.scalarValues = scalarValues
     }
@@ -37,13 +39,13 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Runs `body` with a decoder backed by temporary stack allocations.
     @inlinable
     @inline(__always)
-    static func withDecoder<R: ~Copyable, Failure: Error>(
+    static func withTemporaryDecoder<R: ~Copyable, Failure: Error>(
         _ body: (inout SIMDUnicodeScalarDecoder) throws(Failure) -> R
     ) throws(Failure) -> R {
         try withUnsafeTemporaryAllocation(
             of: UInt8.self,
-            capacity: Self.windowSize &+ 3
-        ) { windowBytes throws(Failure) -> R in
+            capacity: Self.tempBytesSize
+        ) { tempBytes throws(Failure) -> R in
             try withUnsafeTemporaryAllocation(
                 of: UInt8.self,
                 capacity: Self.windowSize
@@ -52,8 +54,9 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
                     of: Unicode.Scalar.self,
                     capacity: Self.windowSize
                 ) { scalarValues throws(Failure) -> R in
+                    unsafe tempBytes.initialize(repeating: 0)
                     var decoder = unsafe SIMDUnicodeScalarDecoder(
-                        windowBytes: windowBytes.mutableSpan,
+                        tempBytes: tempBytes.mutableSpan,
                         scalarUTF8Lengths: scalarUTF8Lengths.mutableSpan,
                         scalarValues: scalarValues.mutableSpan
                     )
@@ -65,26 +68,26 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
 
     @inlinable
     @inline(__always)
-    mutating func _decodeWindow(of bytes: Span<UInt8>, range: Range<Int>) {
-        let copyCount = Swift.min(Self.windowSize &+ 3, range.count)
-        var i = 0
-        while i < copyCount {
-            unsafe self.windowBytes[unchecked: i] = bytes[unchecked: range.lowerBound &+ i]
-            i &+= 1
-        }
-        while i < (Self.windowSize &+ 3) {
-            unsafe self.windowBytes[unchecked: i] = 0
-            i &+= 1
+    mutating func _decodeWindow(of encodedBytes: Span<UInt8>) {
+        assert(encodedBytes.count >= 0 && encodedBytes.count <= Self.tempBytesSize)
+
+        /// Write `encodedBytes` into `tempBytes`. The pad bytes are not important.
+        tempBytes.withUnsafeMutableBufferPointer { temp in
+            encodedBytes.withUnsafeBufferPointer { encoded in
+                let rawTemp = UnsafeMutableRawBufferPointer(temp)
+                let rawEncodedBytes = UnsafeRawBufferPointer(encoded)
+                unsafe rawTemp.copyMemory(from: rawEncodedBytes)
+            }
         }
 
         /// This loop is auto-vectorized by LLVM.
-        for position in 0..<Self.windowSize {
-            let leadByte = unsafe self.windowBytes[unchecked: position]
+        for idx in 0..<Self.windowSize {
+            let leadByte = unsafe tempBytes[unchecked: idx]
             /// We have 3 extra bytes for speculative decoding so we won't run out of bytes.
-            /// See `windowBytes` doc comments.
-            let continuationByte1 = unsafe self.windowBytes[unchecked: position &+ 1]
-            let continuationByte2 = unsafe self.windowBytes[unchecked: position &+ 2]
-            let continuationByte3 = unsafe self.windowBytes[unchecked: position &+ 3]
+            /// See `tempBytes` doc comments.
+            let continuationByte1 = unsafe tempBytes[unchecked: idx &+ 1]
+            let continuationByte2 = unsafe tempBytes[unchecked: idx &+ 2]
+            let continuationByte3 = unsafe tempBytes[unchecked: idx &+ 3]
 
             let (scalarUTF8Length, scalar) = UnicodeScalarIterator.decodeScalarUnchecked(
                 leadByte: leadByte,
@@ -92,10 +95,10 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
                 continuationByte2: continuationByte2,
                 continuationByte3: continuationByte3
             )
-            unsafe self.scalarUTF8Lengths[unchecked: position] = UInt8(
+            unsafe self.scalarUTF8Lengths[unchecked: idx] = UInt8(
                 truncatingIfNeeded: scalarUTF8Length
             )
-            unsafe self.scalarValues[unchecked: position] = scalar
+            unsafe self.scalarValues[unchecked: idx] = scalar
         }
     }
 
@@ -104,16 +107,17 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     @inline(__always)
     mutating func decodeNextWindow(
         of bytes: Span<UInt8>,
-        windowStart: Int
+        startIdx: Int
     ) -> Int {
         let totalCount = bytes.count
-        let maxCount = totalCount &- windowStart
-        let realCount = Swift.min(SIMDUnicodeScalarDecoder.windowSize, maxCount)
-        let windowEnd = windowStart &+ realCount
+        let lowerBound = startIdx
+        let upperBound = min(lowerBound &+ Self.tempBytesSize, totalCount)
+        let windowEnd = min(lowerBound &+ Self.windowSize, totalCount)
         let decodeRange = unsafe Range<Int>(
-            uncheckedBounds: (windowStart, windowStart &+ totalCount)
+            uncheckedBounds: (lowerBound, upperBound)
         )
-        self._decodeWindow(of: bytes, range: decodeRange)
+        let span = unsafe bytes.extracting(unchecked: decodeRange)
+        self._decodeWindow(of: span)
         return windowEnd
     }
 }

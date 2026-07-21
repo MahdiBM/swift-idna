@@ -383,11 +383,11 @@ extension IDNA {
         let count = span.count
         var requiredCapacity = 0
 
-        SIMDUnicodeScalarDecoder.withDecoder { decoder in
+        SIMDUnicodeScalarDecoder.withTemporaryDecoder { decoder in
             /// Process windows of size `SIMDUnicodeScalarDecoder.windowSize`, one by one.
             var windowStart = 0
             while windowStart < count {
-                let windowEnd = decoder.decodeNextWindow(of: span, windowStart: windowStart)
+                let windowEnd = decoder.decodeNextWindow(of: span, startIdx: windowStart)
 
                 var i = windowStart
                 while i < windowEnd {
@@ -420,7 +420,7 @@ extension IDNA {
             newBytes.append(exactExtraRequiredCapacity: requiredCapacity) { output in
                 var windowStart = 0
                 while windowStart < count {
-                    let windowEnd = decoder.decodeNextWindow(of: span, windowStart: windowStart)
+                    let windowEnd = decoder.decodeNextWindow(of: span, startIdx: windowStart)
 
                     var i = windowStart
                     while i < windowEnd {
