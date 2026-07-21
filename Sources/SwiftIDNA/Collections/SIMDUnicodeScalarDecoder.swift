@@ -16,7 +16,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Decoded UTF-8 byte length (1...4) per window position.
     /// Of length `Self.windowSize`.
     @usableFromInline
-    let scalarByteLengths: UnsafeMutableBufferPointer<UInt8>
+    let scalarUTF8Lengths: UnsafeMutableBufferPointer<UInt8>
     /// Decoded scalar value per window position.
     /// Of length `Self.windowSize`.
     @usableFromInline
@@ -26,11 +26,11 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     @_lifetime(borrow scalarValues)
     init(
         paddedWindowBytes: UnsafeMutableBufferPointer<UInt8>,
-        scalarByteLengths: UnsafeMutableBufferPointer<UInt8>,
+        scalarUTF8Lengths: UnsafeMutableBufferPointer<UInt8>,
         scalarValues: UnsafeMutableBufferPointer<UInt32>
     ) {
         unsafe self.paddedWindowBytes = paddedWindowBytes
-        unsafe self.scalarByteLengths = scalarByteLengths
+        unsafe self.scalarUTF8Lengths = scalarUTF8Lengths
         unsafe self.scalarValues = scalarValues
     }
 
@@ -47,14 +47,14 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
             try withUnsafeTemporaryAllocation(
                 of: UInt8.self,
                 capacity: Self.windowSize
-            ) { scalarByteLengths throws(Failure) -> R in
+            ) { scalarUTF8Lengths throws(Failure) -> R in
                 try withUnsafeTemporaryAllocation(
                     of: UInt32.self,
                     capacity: Self.windowSize
                 ) { scalarValues throws(Failure) -> R in
                     let decoder = unsafe SIMDUnicodeScalarDecoder(
                         paddedWindowBytes: paddedWindowBytes,
-                        scalarByteLengths: scalarByteLengths,
+                        scalarUTF8Lengths: scalarUTF8Lengths,
                         scalarValues: scalarValues
                     )
                     return try body(decoder)
@@ -90,7 +90,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
                 continuationByte2: continuationByte2,
                 continuationByte3: continuationByte3
             )
-            unsafe self.scalarByteLengths[position] = UInt8(truncatingIfNeeded: scalarUTF8Length)
+            unsafe self.scalarUTF8Lengths[position] = UInt8(truncatingIfNeeded: scalarUTF8Length)
             unsafe self.scalarValues[position] = value
         }
     }
