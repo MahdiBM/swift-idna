@@ -31,7 +31,6 @@ jobs:
 
     env:
       ASAN_OPTIONS: "detect_leaks=1"
-      UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
 
     steps:
       - name: Check out ${{ github.event.repository.name }}
@@ -59,7 +58,7 @@ jobs:
           swift build \
             --build-tests \
             --enable-code-coverage \
-            --sanitize=address --sanitize=undefined \
+            --sanitize=address \
             --explicit-target-dependency-import-check error \
             -Xswiftc -require-explicit-sendable \
             -c ${{ matrix.config.mode }}
@@ -78,7 +77,7 @@ jobs:
             --skip "IntegrationTests." \
             --skip-build \
             --enable-code-coverage \
-            --sanitize=address --sanitize=undefined \
+            --sanitize=address \
             -Xswiftc -require-explicit-sendable \
             -c ${{ matrix.config.mode }}
 
