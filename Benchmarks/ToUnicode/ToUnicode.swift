@@ -186,14 +186,14 @@ let benchmarks: @Sendable () -> Void = {
     /// Mark: - Lowercased_app-analytics-services.com
 
     Benchmark(
-        "To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_4M",
+        "To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_6M",
         configuration: .init(
             metrics: [.cpuUser],
             warmupIterations: 15,
             maxIterations: 1000,
         )
     ) { benchmark in
-        for _ in 0..<4_000_000 {
+        for _ in 0..<6_000_000 {
             var domainName = "app-analytics-services.com"
             domainName = try! strictConfig.toUnicode(domainName: domainName)
             blackHole(domainName)
@@ -227,14 +227,14 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark(
-        "To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_4M_ICU",
+        "To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_6M_ICU",
         configuration: .init(
             metrics: [.cpuUser],
             warmupIterations: 15,
             maxIterations: 1000,
         )
     ) { benchmark in
-        for _ in 0..<4_000_000 {
+        for _ in 0..<6_000_000 {
             var domainName = "app-analytics-services.com"
             domainName = UIDNAHookICU.decode(domainName)!
             blackHole(domainName)
@@ -270,14 +270,14 @@ let benchmarks: @Sendable () -> Void = {
     /// Mark: - Uppercased_app-analytics-services.com
 
     Benchmark(
-        "To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_4M",
+        "To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_3M",
         configuration: .init(
             metrics: [.cpuUser],
             warmupIterations: 15,
             maxIterations: 1000,
         )
     ) { benchmark in
-        for _ in 0..<4_000_000 {
+        for _ in 0..<3_000_000 {
             var domainName = "APP-ANALYTICS-SERVICES.COM"
             domainName = try! strictConfig.toUnicode(domainName: domainName)
             blackHole(domainName)
@@ -311,14 +311,14 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark(
-        "To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_4M_ICU",
+        "To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_3M_ICU",
         configuration: .init(
             metrics: [.cpuUser],
             warmupIterations: 15,
             maxIterations: 1000,
         )
     ) { benchmark in
-        for _ in 0..<4_000_000 {
+        for _ in 0..<3_000_000 {
             var domainName = "APP-ANALYTICS-SERVICES.COM"
             domainName = UIDNAHookICU.decode(domainName)!
             blackHole(domainName)

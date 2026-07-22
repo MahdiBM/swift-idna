@@ -102,14 +102,14 @@ let benchmarks: @Sendable () -> Void = {
     /// Mark: - Uppercased_google.com
 
     Benchmark(
-        "To_ASCII_Uppercased_google_dot_com_CPU_5M",
+        "To_ASCII_Uppercased_google_dot_com_CPU_8M",
         configuration: .init(
             metrics: [.cpuUser],
             warmupIterations: 15,
             maxIterations: 1000,
         )
     ) { benchmark in
-        for _ in 0..<5_000_000 {
+        for _ in 0..<8_000_000 {
             var domainName = "GOOGLE.COM"
             domainName = try! strictConfig.toASCII(domainName: domainName)
             blackHole(domainName)
@@ -143,14 +143,14 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark(
-        "To_ASCII_Uppercased_google_dot_com_CPU_5M_ICU",
+        "To_ASCII_Uppercased_google_dot_com_CPU_8M_ICU",
         configuration: .init(
             metrics: [.cpuUser],
             warmupIterations: 15,
             maxIterations: 1000,
         )
     ) { benchmark in
-        for _ in 0..<5_000_000 {
+        for _ in 0..<8_000_000 {
             var domainName = "GOOGLE.COM"
             domainName = UIDNAHookICU.encode(domainName)!
             blackHole(domainName)
@@ -186,14 +186,14 @@ let benchmarks: @Sendable () -> Void = {
     /// Mark: - Lowercased_app-analytics-services.com
 
     Benchmark(
-        "To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_5M",
+        "To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_8M",
         configuration: .init(
             metrics: [.cpuUser],
             warmupIterations: 15,
             maxIterations: 1000,
         )
     ) { benchmark in
-        for _ in 0..<5_000_000 {
+        for _ in 0..<8_000_000 {
             var domainName = "app-analytics-services.com"
             domainName = try! strictConfig.toASCII(domainName: domainName)
             blackHole(domainName)
@@ -227,14 +227,14 @@ let benchmarks: @Sendable () -> Void = {
     }
 
     Benchmark(
-        "To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_5M_ICU",
+        "To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_8M_ICU",
         configuration: .init(
             metrics: [.cpuUser],
             warmupIterations: 15,
             maxIterations: 1000,
         )
     ) { benchmark in
-        for _ in 0..<5_000_000 {
+        for _ in 0..<8_000_000 {
             var domainName = "app-analytics-services.com"
             domainName = UIDNAHookICU.encode(domainName)!
             blackHole(domainName)
@@ -626,7 +626,7 @@ let benchmarks: @Sendable () -> Void = {
         /// Mark: - Multiple_Domains
 
         Benchmark(
-            "To_ASCII_\(namePrefix)_Multiple_Domains_CPU_200K",
+            "To_ASCII_\(namePrefix)_Multiple_Domains_CPU_300K",
             configuration: .init(
                 metrics: [.cpuUser],
                 warmupIterations: 15,
@@ -634,7 +634,7 @@ let benchmarks: @Sendable () -> Void = {
             )
         ) { benchmark in
             var rng = FastRNG()
-            for _ in 0..<200_000 {
+            for _ in 0..<300_000 {
                 let idx = Int(rng.next() % UInt64(multipleDomains.count))
                 let result = try! idnaConfig.toASCII(
                     _uncheckedAssumingValidUTF8: multipleDomains[idx].span
@@ -680,7 +680,7 @@ let benchmarks: @Sendable () -> Void = {
 
         if namePrefix.lowercased() == "lax" {
             Benchmark(
-                "To_ASCII_\(namePrefix)_Multiple_Domains_CPU_200K_ICU",
+                "To_ASCII_\(namePrefix)_Multiple_Domains_CPU_300K_ICU",
                 configuration: .init(
                     metrics: [.cpuUser],
                     warmupIterations: 15,
@@ -688,7 +688,7 @@ let benchmarks: @Sendable () -> Void = {
                 )
             ) { benchmark in
                 var rng = FastRNG()
-                for _ in 0..<200_000 {
+                for _ in 0..<300_000 {
                     let idx = Int(rng.next() % UInt64(multipleDomainsICU.count))
                     let domainName = UIDNAHookICU.encode(multipleDomainsICU[idx])!
                     blackHole(domainName)
