@@ -83,7 +83,7 @@ extension IDNA {
             label: String
         )
         case labelStartsWithCombiningMark(label: String)
-        case labelContainsInvalidUnicode(Unicode.Scalar, label: String)
+        case labelContainsInvalidUnicode(UInt32, label: [UInt8])
         case trueUseSTD3ASCIIRulesArgumentRequiresLabelToOnlyContainCertainASCIICharacters(
             label: String
         )
@@ -147,7 +147,7 @@ extension IDNA {
                     ".labelStartsWithCombiningMark(\(label.debugDescription))"
             case .labelContainsInvalidUnicode(let codePoint, let label):
                 return
-                    ".labelContainsInvalidUnicode(\(codePoint.debugDescription), label: \(label.debugDescription))"
+                    ".labelContainsInvalidUnicode(\(codePoint), label: \(label.debugDescription))"
             case .trueUseSTD3ASCIIRulesArgumentRequiresLabelToOnlyContainCertainASCIICharacters(
                 let label
             ):

@@ -144,8 +144,12 @@ extension IDNA {
 
                     guard let scalar = Unicode.Scalar(uncheckedScalar) else {
                         errors.append(
-                            .labelPunycodeEncodeFailed(label: [UInt8](copying: span))
+                            .labelContainsInvalidUnicode(
+                                uncheckedScalar,
+                                label: [UInt8](copying: span)
+                            )
                         )
+                        i &+= scalarUTF8Length
                         continue
                     }
 
@@ -169,7 +173,8 @@ extension IDNA {
                         let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
                         let uncheckedScalar = unsafe decoder.uncheckedScalarValues[unchecked: idx]
                         guard let scalar = Unicode.Scalar(uncheckedScalar) else {
-                            /// Already appended
+                            /// Error already appended
+                            i &+= scalarUTF8Length
                             return
                         }
 

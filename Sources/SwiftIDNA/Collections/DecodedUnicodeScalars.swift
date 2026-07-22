@@ -8,18 +8,27 @@ struct DecodedUnicodeScalars: ~Copyable {
     var scalars: RigidArray<Unicode.Scalar>
 
     @inlinable
-    init(utf8Bytes: Span<UInt8>) {
+    init(utf8Bytes: Span<UInt8>, errors: inout IDNA.MappingErrors) {
         self.scalars = RigidArray<Unicode.Scalar>(capacity: utf8Bytes.count)
-        self.decode(utf8Bytes: utf8Bytes)
+        self.decode(utf8Bytes: utf8Bytes, errors: &errors)
     }
 
     /// Decodes the given UTF-8 bytes into Unicode scalars.
     @usableFromInline
-    mutating func decode(utf8Bytes: Span<UInt8>) {
+    mutating func decode(
+        utf8Bytes: Span<UInt8>,
+        errors: inout IDNA.MappingErrors
+    ) {
         self.scalars.edit { output in
             var unicodeScalarsIterator = UnicodeScalarIterator()
             while let uncheckedScalar = unicodeScalarsIterator.next(in: utf8Bytes) {
                 guard let scalar = Unicode.Scalar(uncheckedScalar) else {
+                    /// This type is to use in punycode-encode func so we preemptively assume that.
+                    errors.append(
+                        .labelPunycodeEncodeFailed(
+                            label: [UInt8](copying: utf8Bytes)
+                        )
+                    )
                     /// Error already appended in mapToIDNAMappings
                     continue
                 }

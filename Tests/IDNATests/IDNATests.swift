@@ -45,15 +45,11 @@ struct IDNATests {
     ) -> IDNAResolvedFunctionType {
         { idna in
             { bytes throws(CollectedMappingErrors) -> [UInt8] in
-                try bytes.withUnsafeBufferPointer {
-                    bytesPtr throws(CollectedMappingErrors) -> [UInt8] in
-                    let span = unsafe bytesPtr.span
-                    let inputString = String(span: span)!
-                    let function = idnaFunction(idna)
-                    let result = try function(inputString)
-                    let bytes = [UInt8](result.utf8)
-                    return bytes
-                }
+                let inputString = String(decoding: bytes, as: UTF8.self)
+                let function = idnaFunction(idna)
+                let result = try function(inputString)
+                let bytes = [UInt8](result.utf8)
+                return bytes
             }
         }
     }
@@ -200,7 +196,7 @@ struct IDNATests {
             if let correspondingStatus = error.correspondingIDNAStatus {
                 #expect(
                     remainingStatuses.containsRelatedStatusCode(to: correspondingStatus),
-                    "current error: \(error), errors: \(idnaError.errors)"
+                    "Current error: \(error), errors: \(idnaError.errors)"
                 )
             }
             guard
@@ -232,15 +228,7 @@ extension IDNA.ConversionResult {
         case .noChangesNeeded:
             return nil
         case .bytes(let bytes):
-            return unsafe [UInt8](
-                unsafeUninitializedCapacity: bytes.count
-            ) { buffer, initializedCount in
-                bytes.span.withUnsafeBytes { bytesPtr in
-                    let rawBuffer = UnsafeMutableRawBufferPointer(buffer)
-                    unsafe rawBuffer.copyMemory(from: bytesPtr)
-                }
-                initializedCount = bytes.count
-            }
+            return [UInt8](copying: bytes.span)
         case .string(let string):
             return [UInt8](string.utf8)
         }

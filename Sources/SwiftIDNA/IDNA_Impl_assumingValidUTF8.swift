@@ -17,7 +17,8 @@ extension IDNA {
 
             processedBytes.withSpan { processedBytesSpan in
                 var baseDecodedUnicodeScalars = DecodedUnicodeScalars(
-                    utf8Bytes: processedBytesSpan
+                    utf8Bytes: processedBytesSpan,
+                    errors: &errors
                 )
                 var decodedUnicodeScalars = DecodedUnicodeScalars.Subsequence(
                     base: &baseDecodedUnicodeScalars
@@ -448,8 +449,8 @@ extension IDNA {
                     case .mapped, .disallowed, .ignored:
                         errors.append(
                             .labelContainsInvalidUnicode(
-                                scalar,
-                                label: String(_uncheckedAssumingValidUTF8: span)
+                                uncheckedScalar,
+                                label: [UInt8](copying: span)
                             )
                         )
                     }
