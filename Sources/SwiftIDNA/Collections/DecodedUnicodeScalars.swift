@@ -18,7 +18,11 @@ struct DecodedUnicodeScalars: ~Copyable {
     mutating func decode(utf8Bytes: Span<UInt8>) {
         self.scalars.edit { output in
             var unicodeScalarsIterator = UnicodeScalarIterator()
-            while let scalar = unicodeScalarsIterator.next(in: utf8Bytes) {
+            while let uncheckedScalar = unicodeScalarsIterator.next(in: utf8Bytes) {
+                guard let scalar = Unicode.Scalar(uncheckedScalar) else {
+                    /// Error already appended in mapToIDNAMappings
+                    continue
+                }
                 output.append(scalar)
             }
         }

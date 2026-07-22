@@ -637,7 +637,7 @@ let benchmarks: @Sendable () -> Void = {
             for _ in 0..<300_000 {
                 let idx = Int(rng.next() % UInt64(multipleDomains.count))
                 let result = try! idnaConfig.toASCII(
-                    _uncheckedAssumingValidUTF8: multipleDomains[idx].span
+                    span: multipleDomains[idx].span
                 )
                 let domainName = unsafe result.collect().unsafelyUnwrapped
                 blackHole(domainName)
@@ -654,7 +654,7 @@ let benchmarks: @Sendable () -> Void = {
         ) { benchmark in
             for idx in multipleDomains.indices {
                 let result = try! idnaConfig.toASCII(
-                    _uncheckedAssumingValidUTF8: multipleDomains[idx].span
+                    span: multipleDomains[idx].span
                 )
                 let domainName = unsafe result.collect().unsafelyUnwrapped
                 blackHole(domainName)
@@ -671,7 +671,7 @@ let benchmarks: @Sendable () -> Void = {
         ) { benchmark in
             for idx in multipleDomains.indices {
                 let result = try! idnaConfig.toASCII(
-                    _uncheckedAssumingValidUTF8: multipleDomains[idx].span
+                    span: multipleDomains[idx].span
                 )
                 let domainName = unsafe result.collect().unsafelyUnwrapped
                 blackHole(domainName)

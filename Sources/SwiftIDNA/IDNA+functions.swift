@@ -8,9 +8,7 @@ extension IDNA {
         var copy = domainName
         return try copy.withSpan_Compatibility {
             span throws(CollectedMappingErrors) -> String in
-            try self._toASCII(
-                _uncheckedAssumingValidUTF8: span
-            ).collect() ?? domainName
+            try self._toASCII(span: span).collect() ?? domainName
         }
     }
 
@@ -20,9 +18,7 @@ extension IDNA {
         var copy = domainName
         return try copy.withSpan_Compatibility {
             span throws(CollectedMappingErrors) -> String in
-            try self._toUnicode(
-                _uncheckedAssumingValidUTF8: span
-            ).collect() ?? domainName
+            try self._toUnicode(span: span).collect() ?? domainName
         }
     }
 }
@@ -34,25 +30,19 @@ extension IDNA {
     /// `ToASCII` IDNA implementation.
     /// https://www.unicode.org/reports/tr46/#toASCII
     ///
-    /// The `span` will be assumed to be valid `String` UTF8 bytes.
-    /// For example `String.utf8Span.span` is a valid span.
-    /// Violating this assumption can result in undefined behavior.
-    public func toASCII(
-        _uncheckedAssumingValidUTF8 span: Span<UInt8>
-    ) throws(CollectedMappingErrors) -> ConversionResult {
-        try self._toASCII(_uncheckedAssumingValidUTF8: span)
+    /// There is no assumption on the validity of the span.
+    /// It can contain UTF16 surrogate bytes which are considered invalid.
+    public func toASCII(span: Span<UInt8>) throws(CollectedMappingErrors) -> ConversionResult {
+        try self._toASCII(span: span)
     }
 
     /// `ToUnicode` IDNA implementation.
     /// https://www.unicode.org/reports/tr46/#ToUnicode
     ///
-    /// The `span` will be assumed to be valid `String` UTF8 bytes.
-    /// For example `String.utf8Span.span` is a valid span.
-    /// Violating this assumption can result in undefined behavior.
-    public func toUnicode(
-        _uncheckedAssumingValidUTF8 span: Span<UInt8>
-    ) throws(CollectedMappingErrors) -> ConversionResult {
-        try self._toUnicode(_uncheckedAssumingValidUTF8: span)
+    /// There is no assumption on the validity of the span.
+    /// It can contain UTF16 surrogate bytes which are considered invalid.
+    public func toUnicode(span: Span<UInt8>) throws(CollectedMappingErrors) -> ConversionResult {
+        try self._toUnicode(span: span)
     }
 }
 
@@ -65,7 +55,7 @@ extension IDNA {
     public func toASCII(
         domainName utf8Span: UTF8Span
     ) throws(CollectedMappingErrors) -> ConversionResult {
-        try self._toASCII(_uncheckedAssumingValidUTF8: utf8Span.span)
+        try self._toASCII(span: utf8Span.span)
     }
 
     /// `ToUnicode` IDNA implementation.
@@ -73,6 +63,6 @@ extension IDNA {
     public func toUnicode(
         domainName utf8Span: UTF8Span
     ) throws(CollectedMappingErrors) -> ConversionResult {
-        try self._toUnicode(_uncheckedAssumingValidUTF8: utf8Span.span)
+        try self._toUnicode(span: utf8Span.span)
     }
 }

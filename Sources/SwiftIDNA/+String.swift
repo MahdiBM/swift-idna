@@ -54,6 +54,38 @@ extension String {
         }
     }
 
+    /// Initializes a `String` by assuming the given span contains any bytes (including invalid UTF-8 bytes).
+    @usableFromInline
+    init?(span: Span<UInt8>) {
+        guard span.checkUTF8() else {
+            return nil
+        }
+
+        if #available(SwiftStdlib 6.2, *) {
+            let utf8Span = unsafe UTF8Span(unchecked: span)
+            self.init(copying: utf8Span)
+        } else if #available(SwiftStdlib 5.3, *) {
+            self.init(unsafeUninitializedCapacity: span.count) { buffer in
+                span.withUnsafeBytes { spanPtr in
+                    let rawBuffer = UnsafeMutableRawBufferPointer(buffer)
+                    unsafe rawBuffer.copyMemory(from: spanPtr)
+                }
+                return span.count
+            }
+        } else {
+            let array = unsafe [UInt8].init(
+                unsafeUninitializedCapacity: span.count
+            ) { buffer, initializedCount in
+                span.withUnsafeBytes { spanPtr in
+                    let rawBuffer = UnsafeMutableRawBufferPointer(buffer)
+                    unsafe rawBuffer.copyMemory(from: spanPtr)
+                }
+                initializedCount = span.count
+            }
+            self.init(decoding: array, as: UTF8.self)
+        }
+    }
+
     /// Gives access to the string's UTF-8 bytes as a `Span<UInt8>`.
     #if canImport(Darwin)
     @usableFromInline

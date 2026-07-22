@@ -108,7 +108,10 @@ extension IDNAUnicodeScalarView: Sequence {
 
         @inlinable
         public mutating func next() -> Unicode.Scalar? {
-            unsafe self.iterator.next(in: self.base.pointer.span)
+            guard let uncheckedScalar = unsafe self.iterator.next(in: self.base.pointer.span) else {
+                return nil
+            }
+            return unsafe Unicode.Scalar(uncheckedScalar).unsafelyUnwrapped
         }
     }
 }

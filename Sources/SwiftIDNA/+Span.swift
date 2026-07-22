@@ -127,21 +127,45 @@ extension Span<UInt8> {
             return false
         }
     }
+
+    /// Ensures the span contains only valid UTF-8 bytes.
+    @inlinable
+    func checkUTF8() -> Bool {
+        if self.isASCII {
+            return true
+        }
+
+        var seenInvalidUTF8 = false
+
+        SIMDUnicodeScalarDecoder.withTemporaryDecoder { decoder in
+            /// Process windows of size `SIMDUnicodeScalarDecoder.windowSize`, one by one.
+            var startIdx = 0
+            while startIdx < count {
+                let windowEnd = decoder.decodeNextWindow(of: self, startIdx: startIdx)
+
+                var i = startIdx
+                while i < windowEnd {
+                    let idx = i &- startIdx
+                    let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
+                    let uncheckedScalar = unsafe decoder.uncheckedScalarValues[unchecked: idx]
+
+                    if Unicode.Scalar(uncheckedScalar) == nil {
+                        seenInvalidUTF8 = true
+                    }
+
+                    i &+= scalarUTF8Length
+                }
+
+                startIdx = i
+            }
+        }
+
+        return !seenInvalidUTF8
+    }
 }
 
 @available(SwiftStdlib 5.1, *)
 extension Span {
-    /// Whether or not all the elements in the span satisfy the given predicate.
-    @inlinable
-    func allSatisfy(_ predicate: (Element) -> Bool) -> Bool {
-        for idx in self.indices {
-            if !predicate(self[idx]) {
-                return false
-            }
-        }
-        return true
-    }
-
     /// Finds the last index of the given element in the span.
     @inlinable
     func lastIndex(of element: Element) -> Int? where Element: Equatable {

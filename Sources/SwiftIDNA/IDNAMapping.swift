@@ -31,7 +31,7 @@ struct IDNAMapping {
 
 @available(SwiftStdlib 5.1, *)
 extension IDNAMapping {
-    /// Look up IDNA mapping for a given Unicode scalar
+    /// Look up IDNA mapping for a given Unicode scalar.
     /// - Parameter scalar: The Unicode scalar to look up
     /// - Returns: The corresponding `IDNAMapping` value
     @inlinable

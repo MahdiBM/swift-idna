@@ -77,7 +77,7 @@ enum Punycode {
     /// You can use use the `outputBufferForReuse` after the function returns.
     @inlinable
     static func encode(
-        _uncheckedAssumingValidUTF8 inputBytesSpan: Span<UInt8>,
+        inputBytesSpan: Span<UInt8>,
         outputBufferForReuse output: inout TinyBuffer,
         decodedUnicodeScalars: borrowing DecodedUnicodeScalars.Subsequence
     ) {
@@ -239,7 +239,7 @@ enum Punycode {
                     /// Above we check that input is not empty, so this is safe.
                     /// There are also extensive tests for this in the IDNATests.swift.
                     let codePoint = unicodeScalarsIterator.uncheckedNext(in: inputBytesSpan)
-                    guard let digit = Punycode.mapUnicodeScalarToDigit(codePoint) else {
+                    guard let digit = Punycode.mapCodePointToDigit(codePoint) else {
                         output.removeAll()
                         return false
                     }
@@ -343,8 +343,8 @@ enum Punycode {
     /// [Punycode: A Bootstring encoding of Unicode for IDNA: Parameter values for Punycode](https://datatracker.ietf.org/doc/html/rfc3492#section-5)
     /// A-Z -> 0-25; a-z -> 0-25; 0-9 -> 26-35
     @inlinable
-    static func mapUnicodeScalarToDigit(_ unicodeScalar: Unicode.Scalar) -> UInt32? {
-        let value = unicodeScalar.value
+    static func mapCodePointToDigit(_ codePoint: UInt32) -> UInt32? {
+        let value = codePoint
 
         /// An uppercase ASCII letter should not make it through to Punycode conversion.
         assert(!(value >= 0x41 && value <= 0x5a))

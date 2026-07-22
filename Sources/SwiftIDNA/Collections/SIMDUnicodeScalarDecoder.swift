@@ -23,18 +23,18 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Decoded scalar value per window position.
     /// Of length `Self.windowSize`.
     @usableFromInline
-    var scalarValues: MutableSpan<Unicode.Scalar>
+    var uncheckedScalarValues: MutableSpan<UInt32>
 
     @inlinable
-    @_lifetime(copy tempBytes, copy scalarUTF8Lengths, copy scalarValues)
+    @_lifetime(copy tempBytes, copy scalarUTF8Lengths, copy uncheckedScalarValues)
     init(
         tempBytes: consuming MutableSpan<UInt8>,
         scalarUTF8Lengths: consuming MutableSpan<UInt8>,
-        scalarValues: consuming MutableSpan<Unicode.Scalar>
+        uncheckedScalarValues: consuming MutableSpan<UInt32>
     ) {
         self.tempBytes = tempBytes
         self.scalarUTF8Lengths = scalarUTF8Lengths
-        self.scalarValues = scalarValues
+        self.uncheckedScalarValues = uncheckedScalarValues
     }
 
     /// Runs `body` with a decoder backed by temporary stack allocations.
@@ -52,14 +52,14 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
                 capacity: Self.windowSize
             ) { scalarUTF8Lengths throws(Failure) -> R in
                 try withUnsafeTemporaryAllocation(
-                    of: Unicode.Scalar.self,
+                    of: UInt32.self,
                     capacity: Self.windowSize
-                ) { scalarValues throws(Failure) -> R in
+                ) { uncheckedScalarValues throws(Failure) -> R in
                     unsafe tempBytes.initialize(repeating: 0)
                     var decoder = unsafe SIMDUnicodeScalarDecoder(
                         tempBytes: tempBytes.mutableSpan,
                         scalarUTF8Lengths: scalarUTF8Lengths.mutableSpan,
-                        scalarValues: scalarValues.mutableSpan
+                        uncheckedScalarValues: uncheckedScalarValues.mutableSpan
                     )
                     return try body(&decoder)
                 }
@@ -92,7 +92,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
             let continuationByte2 = unsafe tempBytes[unchecked: idx &+ 2]
             let continuationByte3 = unsafe tempBytes[unchecked: idx &+ 3]
 
-            let (scalarUTF8Length, scalar) = UnicodeScalarIterator.decodeScalarUnchecked(
+            let (scalarUTF8Length, uncheckedScalar) = UnicodeScalarIterator.decodeScalar(
                 leadByte: leadByte,
                 continuationByte1: continuationByte1,
                 continuationByte2: continuationByte2,
@@ -101,7 +101,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
             unsafe self.scalarUTF8Lengths[unchecked: idx] = UInt8(
                 truncatingIfNeeded: scalarUTF8Length
             )
-            unsafe self.scalarValues[unchecked: idx] = scalar
+            unsafe self.uncheckedScalarValues[unchecked: idx] = uncheckedScalar
         }
     }
 

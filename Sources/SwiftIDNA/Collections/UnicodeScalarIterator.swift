@@ -17,7 +17,7 @@ struct UnicodeScalarIterator {
     /// As always, tests will fail if this is not the case.
     @inline(__always)
     @inlinable
-    mutating func uncheckedNext(in bytes: Span<UInt8>) -> Unicode.Scalar {
+    mutating func uncheckedNext(in bytes: Span<UInt8>) -> UInt32 {
         let lowerBound = self.currentCodeUnitOffset
         let leadByte = unsafe bytes[unchecked: lowerBound]
         let lastIndex = bytes.count &- 1
@@ -25,7 +25,7 @@ struct UnicodeScalarIterator {
         let continuationByte2 = unsafe bytes[unchecked: Swift.min(lowerBound &+ 2, lastIndex)]
         let continuationByte3 = unsafe bytes[unchecked: Swift.min(lowerBound &+ 3, lastIndex)]
 
-        let (scalarUTF8Length, scalar) = Self.decodeScalarUnchecked(
+        let (scalarUTF8Length, uncheckedScalar) = Self.decodeScalar(
             leadByte: leadByte,
             continuationByte1: continuationByte1,
             continuationByte2: continuationByte2,
@@ -33,17 +33,17 @@ struct UnicodeScalarIterator {
         )
         self.currentCodeUnitOffset = lowerBound &+ scalarUTF8Length
 
-        return scalar
+        return uncheckedScalar
     }
 
     @inline(__always)
     @inlinable
-    static func decodeScalarUnchecked(
+    static func decodeScalar(
         leadByte: UInt8,
         continuationByte1: UInt8,
         continuationByte2: UInt8,
         continuationByte3: UInt8
-    ) -> (scalarUTF8Length: Int, value: Unicode.Scalar) {
+    ) -> (scalarUTF8Length: Int, uncheckedScalar: UInt32) {
         /// Count of leading ones in the first byte: 0 for ASCII, else the scalar's byte-length
         let leadingOnes = Swift.min(4, (~leadByte).leadingZeroBitCount)
         let scalarUTF8Length = Swift.max(1, leadingOnes)
@@ -56,8 +56,7 @@ struct UnicodeScalarIterator {
         let shift = 6 &* (4 &- scalarUTF8Length)
         let value = (leadNoLengthBits | c1 | c2 | c3) &>> shift
 
-        let scalar = unsafe Unicode.Scalar(value).unsafelyUnwrapped
-        return (scalarUTF8Length, scalar)
+        return (scalarUTF8Length, value)
     }
 
     /// Decodes and returns the next Unicode scalar.
@@ -66,7 +65,7 @@ struct UnicodeScalarIterator {
     /// As always, tests will fail if this is not the case.
     @inline(__always)
     @inlinable
-    mutating func next(in bytes: Span<UInt8>) -> Unicode.Scalar? {
+    mutating func next(in bytes: Span<UInt8>) -> UInt32? {
         guard self.currentCodeUnitOffset < bytes.count else { return nil }
         return self.uncheckedNext(in: bytes)
     }
@@ -78,7 +77,7 @@ struct UnicodeScalarIterator {
     /// As always, tests will fail if this is not the case.
     @inline(__always)
     @inlinable
-    mutating func uncheckedNextWithRange(in bytes: Span<UInt8>) -> (Unicode.Scalar, Range<Int>)? {
+    mutating func uncheckedNextWithRange(in bytes: Span<UInt8>) -> (UInt32, Range<Int>)? {
         let lowerBound = self.currentCodeUnitOffset
         let next = self.uncheckedNext(in: bytes)
         let range = unsafe Range<Int>(
@@ -93,7 +92,7 @@ struct UnicodeScalarIterator {
     /// As always, tests will fail if this is not the case.
     @inline(__always)
     @inlinable
-    mutating func nextWithRange(in bytes: Span<UInt8>) -> (Unicode.Scalar, Range<Int>)? {
+    mutating func nextWithRange(in bytes: Span<UInt8>) -> (UInt32, Range<Int>)? {
         guard self.currentCodeUnitOffset < bytes.count else { return nil }
         let lowerBound = self.currentCodeUnitOffset
         let next = self.uncheckedNext(in: bytes)

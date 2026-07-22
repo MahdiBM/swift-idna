@@ -44,21 +44,21 @@ struct IDNATestV2Case {
     }
 
     /// The source string to be tested
-    let source: String
+    let source: [UInt8]
     /// The result of applying toUnicode to the source, with Transitional_Processing=false
-    let toUnicode: String?
+    let toUnicode: [UInt8]?
     /// A set of status codes for toUnicode operation
     let toUnicodeStatus: [Status]
     /// The result of applying toASCII to the source, with Transitional_Processing=false
-    let toAsciiN: String?
+    let toAsciiN: [UInt8]?
     /// A set of status codes for toAsciiN operation
     let toAsciiNStatus: [Status]
 
     init(
-        source: String,
-        toUnicode: String?,
+        source: [UInt8],
+        toUnicode: [UInt8]?,
         toUnicodeStatus: [Status],
-        toAsciiN: String?,
+        toAsciiN: [UInt8]?,
         toAsciiNStatus: [Status]
     ) {
         self.source = source
@@ -69,9 +69,9 @@ struct IDNATestV2Case {
     }
 
     init(from cCase: CSwiftIDNATestV2CCase) {
-        self.source = unsafe String(cString: cCase.source)
-        self.toUnicode = unsafe cCase.toUnicode.map(String.init(cString:))
-        self.toAsciiN = unsafe cCase.toAsciiN.map(String.init(cString:))
+        self.source = unsafe Self.toUInt8Array(cCase.source)
+        self.toUnicode = unsafe cCase.toUnicode.map { unsafe Self.toUInt8Array($0) }
+        self.toAsciiN = unsafe cCase.toAsciiN.map { unsafe Self.toUInt8Array($0) }
         self.toUnicodeStatus = unsafe Array(
             UnsafeBufferPointer(
                 start: cCase.toUnicodeStatus!,
@@ -94,6 +94,14 @@ struct IDNATestV2Case {
         }
     }
 
+    private static func toUInt8Array(_ cString: UnsafePointer<CChar>) -> [UInt8] {
+        let length = unsafe UTF8._nullCodeUnitOffset(in: cString)
+        let buffer = unsafe UnsafeBufferPointer(start: cString, count: length)
+        return unsafe buffer.withMemoryRebound(to: UInt8.self) {
+            unsafe Array($0)
+        }
+    }
+
     private static var customCases: [IDNATestV2Case] {
         let massiveASCII = massivePunyCodeStrings.ascii
         let massiveUnicode = massivePunyCodeStrings.unicode
@@ -105,25 +113,25 @@ struct IDNATestV2Case {
             /// These cases are just for my peace of mind that the optimizations I've done and the pre-allocations will not
             /// result in a crash or something even for such massive ~invalid inputs.
             IDNATestV2Case(
-                source: asciiString,
-                toUnicode: unicodeString,
+                source: [UInt8](asciiString.utf8),
+                toUnicode: [UInt8](unicodeString.utf8),
                 toUnicodeStatus: [.P4, .P4, .P4, .P4, .P4, .P4],
-                toAsciiN: asciiString,
+                toAsciiN: [UInt8](asciiString.utf8),
                 toAsciiNStatus: [.P4, .P4, .P4, .P4, .P4, .P4]
             ),
             IDNATestV2Case(
-                source: unicodeString,
-                toUnicode: unicodeString,
+                source: [UInt8](unicodeString.utf8),
+                toUnicode: [UInt8](unicodeString.utf8),
                 toUnicodeStatus: [.A4_2],
-                toAsciiN: asciiString,
+                toAsciiN: [UInt8](asciiString.utf8),
                 toAsciiNStatus: [.A4_2]
             ),
             /// This reproduces an impl issue that was caught in dev stage (before merge).
             IDNATestV2Case(
-                source: "мойассистент.рф",
-                toUnicode: "мойассистент.рф",
+                source: [UInt8]("мойассистент.рф".utf8),
+                toUnicode: [UInt8]("мойассистент.рф".utf8),
                 toUnicodeStatus: [],
-                toAsciiN: "xn--80akicokc0aablc.xn--p1ai",
+                toAsciiN: [UInt8]("xn--80akicokc0aablc.xn--p1ai".utf8),
                 toAsciiNStatus: []
             ),
         ]
