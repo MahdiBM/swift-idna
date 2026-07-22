@@ -111,7 +111,7 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 ### Summary
 
 > [!NOTE]
-> * swift-idna wins 22 of the 28 benchmarks, ties 2, loses 4.
+> * swift-idna wins 18 of the 24 benchmarks, ties 4, loses 2.
 > * swift-idna commits considerably less heap allocations.
 > * swift-idna is much faster for the vast majority of the domain names in the wild, which are ASCII.
 
@@ -121,23 +121,19 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 
 | Benchmark                                  | ICU   | swift-idna | Improv. % |
 | ------------------------------------------ | ----- | ---------- | --------- |
-| To_ASCII_Lax_öob_dot_se_CPU_300K           | 110ms | 80ms       | 1.38x     |
-| To_ASCII_Lax_生命之花_dot_中国_CPU_200K      | 100ms | 90ms       | 1.11x     |
-| To_ASCII_Lax_Multiple_Domains_CPU_300K     | 150ms | 160ms      | 0.94x     |
-| To_Unicode_Lax_öob_dot_se_CPU_300K         | 110ms | 100ms      | 1.1x      |
-| To_Unicode_Lax_生命之花_dot_中国_CPU_200K    | 140ms | 160ms      | 0.88x     |
-| To_Unicode_Lax_Multiple_Domains_CPU_200K   | 120ms | 140ms      | 0.86x     |
+| To_ASCII_Lax_生命之花_dot_中国_CPU_200K      | 100ms | 100ms      | 1x        |
+| To_ASCII_Lax_Multiple_Domains_CPU_300K     | 150ms | 170ms      | 0.88x     |
+| To_Unicode_Lax_生命之花_dot_中国_CPU_200K    | 130ms | 130ms      | 1x        |
+| To_Unicode_Lax_Multiple_Domains_CPU_200K   | 110ms | 110ms      | 1x        |
 
 #### Malloc Count
 
 | Benchmark                                | ICU | swift-idna | Improv. %  |
 | ---------------------------------------- | --- | ---------- | ---------- |
-| To_ASCII_Lax_öob_dot_se_Malloc           | 2   | 1          | 2x    (-1) |
 | To_ASCII_Lax_生命之花_dot_中国_Malloc      | 5   | 4          | 1.25x (-1) |
 | To_ASCII_Lax_Multiple_Domains_Malloc     | 46  | 40         | 1.15x (-6) |
-| To_Unicode_Lax_öob_dot_se_Malloc         | 1   | 1          | 1x    (0)  |
 | To_Unicode_Lax_生命之花_dot_中国_Malloc    | 4   | 4          | 1x    (0)  |
-| To_Unicode_Lax_Multiple_Domains_Malloc   | 25  | 33         | 0.76x (+8) |
+| To_Unicode_Lax_Multiple_Domains_Malloc   | 25  | 34         | 0.74x (+9) |
 
 ### ASCII Domain Names
 
@@ -145,14 +141,14 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 
 | Benchmark                                                   | ICU   | swift-idna | Improv. % |
 | ----------------------------------------------------------- | ----- | ---------- | --------- |
-| To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_8M   | 830ms | 140ms      | 5.93x     |
-| To_ASCII_Lowercased_google_dot_com_CPU_8M                   | 540ms | 140ms      | 3.86x     |
-| To_ASCII_Uppercased_app-analytics-services_dot_com_CPU_3M   | 310ms | 130ms      | 2.38x     |
-| To_ASCII_Uppercased_google_dot_com_CPU_8M                   | 560ms | 190ms      | 2.95x     |
-| To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_6M | 610ms | 160ms      | 3.81x     |
-| To_Unicode_Lowercased_google_dot_com_CPU_8M                 | 550ms | 170ms      | 3.24x     |
-| To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_3M | 300ms | 150ms      | 2x        |
-| To_Unicode_Uppercased_google_dot_com_CPU_5M                 | 350ms | 140ms      | 2.5x      |
+| To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_8M   | 860ms | 160ms      | 5.38x     |
+| To_ASCII_Lowercased_google_dot_com_CPU_8M                   | 590ms | 150ms      | 3.93x     |
+| To_ASCII_Uppercased_app-analytics-services_dot_com_CPU_3M   | 340ms | 140ms      | 2.43x     |
+| To_ASCII_Uppercased_google_dot_com_CPU_8M                   | 580ms | 200ms      | 2.9x      |
+| To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_6M | 630ms | 170ms      | 3.71x     |
+| To_Unicode_Lowercased_google_dot_com_CPU_8M                 | 570ms | 170ms      | 3.35x     |
+| To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_3M | 320ms | 170ms      | 1.88x     |
+| To_Unicode_Uppercased_google_dot_com_CPU_5M                 | 360ms | 150ms      | 2.4x      |
 
 #### Malloc Count
 
