@@ -6,7 +6,6 @@ import Testing
 struct IDNATests {
     typealias ConversionResult = IDNA.ConversionResult
     typealias CollectedMappingErrors = IDNA.CollectedMappingErrors
-    typealias IDNAFunctionType = (Span<UInt8>) throws(CollectedMappingErrors) -> ConversionResult
     typealias IDNAResolvedFunctionType = (IDNA) -> (
         ([UInt8]) throws(CollectedMappingErrors) -> [UInt8]
     )
@@ -20,9 +19,10 @@ struct IDNATests {
         #expect(array.capacity == TINY_ARRAY__UNIQUE_ARRAY_ALLOCATION_THRESHOLD)
     }
 
-    static func makeFunction(
-        idnaFunction: @escaping (IDNA) -> (IDNAFunctionType),
-        source: [UInt8]
+    static func makeBytesFunction(
+        source: [UInt8],
+        idnaFunction:
+            @escaping (IDNA) -> ((Span<UInt8>) throws(CollectedMappingErrors) -> ConversionResult)
     ) -> IDNAResolvedFunctionType {
         { idna in
             { bytes throws(CollectedMappingErrors) -> [UInt8] in
@@ -38,16 +38,58 @@ struct IDNATests {
         }
     }
 
+    static func makeStringFunction(
+        source: [UInt8],
+        idnaFunction:
+            @escaping (IDNA) -> ((String) throws(CollectedMappingErrors) -> String)
+    ) -> IDNAResolvedFunctionType {
+        { idna in
+            { bytes throws(CollectedMappingErrors) -> [UInt8] in
+                try bytes.withUnsafeBufferPointer {
+                    bytesPtr throws(CollectedMappingErrors) -> [UInt8] in
+                    let span = unsafe bytesPtr.span
+                    let inputString = String(span: span)!
+                    let function = idnaFunction(idna)
+                    let result = try function(inputString)
+                    let bytes = [UInt8](result.utf8)
+                    return bytes
+                }
+            }
+        }
+    }
+
     /// For debugging you can choose a specific test case based on its index. For example
     /// for index 5101, use `@Test(arguments: IDNATestV2Case.enumeratedAllCases()[5101...5101])`.
     @Test(arguments: IDNATestV2Case.enumeratedAllCases())
-    func `run IDNATestV2Suite against toASCII function`(index: Int, arg: IDNATestV2Case) throws {
+    func `run IDNATestV2Suite against toASCII Span<UInt8> function`(
+        index: Int,
+        arg: IDNATestV2Case
+    ) throws {
         var idna = IDNA(configuration: .mostStrict)
         /// Because ToASCII will go through ToUnicode too
         var statuses = arg.toUnicodeStatus + arg.toAsciiNStatus
         try runTestCase(
             idna: &idna,
-            function: Self.makeFunction(idnaFunction: IDNA.toASCII, source: arg.source),
+            function: Self.makeBytesFunction(source: arg.source, idnaFunction: IDNA.toASCII),
+            source: arg.source,
+            expected: arg.toAsciiN,
+            remainingStatuses: &statuses
+        )
+    }
+
+    /// For debugging you can choose a specific test case based on its index. For example
+    /// for index 5101, use `@Test(arguments: IDNATestV2Case.enumeratedAllCases()[5101...5101])`.
+    @Test(arguments: IDNATestV2Case.enumeratedAllCasesValidUTF8())
+    func `run IDNATestV2Suite against toASCII String function`(
+        index: Int,
+        arg: IDNATestV2Case
+    ) throws {
+        var idna = IDNA(configuration: .mostStrict)
+        /// Because ToASCII will go through ToUnicode too
+        var statuses = arg.toUnicodeStatus + arg.toAsciiNStatus
+        try runTestCase(
+            idna: &idna,
+            function: Self.makeStringFunction(source: arg.source, idnaFunction: IDNA.toASCII),
             source: arg.source,
             expected: arg.toAsciiN,
             remainingStatuses: &statuses
@@ -57,12 +99,33 @@ struct IDNATests {
     /// For debugging you can choose a specific test case based on its index. For example
     /// for index 5101, use `@Test(arguments: IDNATestV2Case.enumeratedAllCases()[5101...5101])`.
     @Test(arguments: IDNATestV2Case.enumeratedAllCases())
-    func `run IDNATestV2Suite against toUnicode function`(index: Int, arg: IDNATestV2Case) throws {
+    func `run IDNATestV2Suite against toUnicode Span<UInt8> function`(
+        index: Int,
+        arg: IDNATestV2Case
+    ) throws {
         var idna = IDNA(configuration: .mostStrict)
         var statuses = arg.toUnicodeStatus
         try runTestCase(
             idna: &idna,
-            function: Self.makeFunction(idnaFunction: IDNA.toUnicode, source: arg.source),
+            function: Self.makeBytesFunction(source: arg.source, idnaFunction: IDNA.toUnicode),
+            source: arg.source,
+            expected: arg.toUnicode,
+            remainingStatuses: &statuses
+        )
+    }
+
+    /// For debugging you can choose a specific test case based on its index. For example
+    /// for index 5101, use `@Test(arguments: IDNATestV2Case.enumeratedAllCases()[5101...5101])`.
+    @Test(arguments: IDNATestV2Case.enumeratedAllCasesValidUTF8())
+    func `run IDNATestV2Suite against toUnicode String function`(
+        index: Int,
+        arg: IDNATestV2Case
+    ) throws {
+        var idna = IDNA(configuration: .mostStrict)
+        var statuses = arg.toUnicodeStatus
+        try runTestCase(
+            idna: &idna,
+            function: Self.makeStringFunction(source: arg.source, idnaFunction: IDNA.toUnicode),
             source: arg.source,
             expected: arg.toUnicode,
             remainingStatuses: &statuses

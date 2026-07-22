@@ -56,7 +56,7 @@ extension String {
 
     /// Initializes a `String` by assuming the given span contains any bytes (including invalid UTF-8 bytes).
     @usableFromInline
-    init?(span: Span<UInt8>) {
+    package init?(span: Span<UInt8>) {
         guard span.checkUTF8() else {
             return nil
         }

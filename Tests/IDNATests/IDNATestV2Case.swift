@@ -151,11 +151,22 @@ struct IDNATestV2Case {
         Self.customCases + allUnicodeCases()
     }
 
+    private static func allCasesValidUTF8() -> [IDNATestV2Case] {
+        Self.allCases().filter { !$0.toAsciiNStatus.contains(.A3) }
+    }
+
     /// This is better for debuggability.
     /// If a certain case is failing, we'll know what index it belongs to so we can
     /// try to investigate that case alone.
     static func enumeratedAllCases() -> [(index: Int, case: IDNATestV2Case)] {
         Self.allCases().enumerated().map { ($0, $1) }
+    }
+
+    /// This is better for debuggability.
+    /// If a certain case is failing, we'll know what index it belongs to so we can
+    /// try to investigate that case alone.
+    static func enumeratedAllCasesValidUTF8() -> [(index: Int, case: IDNATestV2Case)] {
+        Self.allCasesValidUTF8().enumerated().map { ($0, $1) }
     }
 }
 
