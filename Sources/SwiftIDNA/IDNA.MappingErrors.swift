@@ -16,7 +16,7 @@ extension IDNA {
     @usableFromInline
     struct MappingErrors: ~Copyable, ~Escapable {
         @usableFromInline
-        let uncheckedDomainNameSpan: Span<UInt8>
+        let domainNameSpan: Span<UInt8>
         @usableFromInline
         var errors: UniqueArray<MappingError>
 
@@ -26,9 +26,9 @@ extension IDNA {
         }
 
         @inlinable
-        @_lifetime(copy uncheckedDomainNameSpan)
-        init(uncheckedDomainNameSpan: Span<UInt8>) {
-            self.uncheckedDomainNameSpan = uncheckedDomainNameSpan
+        @_lifetime(copy domainNameSpan)
+        init(domainNameSpan: Span<UInt8>) {
+            self.domainNameSpan = domainNameSpan
             self.errors = UniqueArray<MappingError>(minimumCapacity: 0)
         }
 
@@ -48,7 +48,7 @@ extension IDNA {
                 unsafe errors.append(contentsOf: spanPtr)
             }
             return CollectedMappingErrors(
-                domainName: String(span: self.uncheckedDomainNameSpan) ?? "<non-utf8-domain-name>",
+                domainName: String(span: self.domainNameSpan) ?? "<non-utf8-domain-name>",
                 errors: errors
             )
         }
