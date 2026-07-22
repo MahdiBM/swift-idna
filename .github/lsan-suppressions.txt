@@ -1,3 +1,7 @@
 # LeakSanitizer suppressions for leaks in the test-runner infrastructure, not project code.
 leak:libXCTest.so
 leak:swiftpm-xctest-helper
+leak:load_images
+leak:_NSInitializePlatform
+leak:_libxpc_initializer
+leak:libSystem_initializer
