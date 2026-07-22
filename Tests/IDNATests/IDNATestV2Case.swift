@@ -33,6 +33,7 @@ struct IDNATestV2Case {
     /// For example, V4 refers to https://www.unicode.org/reports/tr46/#Validity_Criteria
     /// point number 4: If not CheckHyphens, the label must not begin with “xn--”.
     enum Status: String {
+        case A3
         case A4_1, A4_2
         case B1, B2, B3, B4, B5, B6
         case C1, C2
@@ -174,7 +175,7 @@ extension IDNA.MappingError {
         case .labelStartsWithXNHyphenMinusHyphenMinusButContainsNonASCII:
             return .P4
         case .labelPunycodeEncodeFailed:
-            return nil
+            return .A3
         case .labelPunycodeDecodeFailed:
             return .X4_2
         case .labelIsEmptyAfterPunycodeConversion:
@@ -216,7 +217,7 @@ extension IDNA.MappingError {
             switch status {
             case .P4, .V1, .V4, .V6, .V7, .X4_2:
                 return true
-            case .A4_1, .A4_2, .B1, .B2, .B3, .B4, .B5, .B6, .C1, .C2, .V2, .V3, .U1:
+            case .A3, .A4_1, .A4_2, .B1, .B2, .B3, .B4, .B5, .B6, .C1, .C2, .V2, .V3, .U1:
                 return false
             }
         }
@@ -232,6 +233,7 @@ extension IDNA.MappingError {
         }
 
         switch correspondingStatus {
+        case .A3: break
         case .A4_1:
             configuration.verifyDNSLength = false
         case .A4_2:
