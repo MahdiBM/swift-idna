@@ -207,7 +207,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     /// gives access to the underlying buffer as an `OutputSpan<UInt8>`.
     @inlinable
     mutating func append(
-        exactExtraRequiredCapacity extraCapacity: Int,
+        extraRequiredCapacity extraCapacity: Int,
         _ block: (inout OutputSpan<UInt8>) -> Void
     ) {
         /// Use heap if the required capacity requires so
@@ -238,7 +238,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     /// Appends the given UTF-8 view to the buffer.
     @inlinable
     mutating func append(copying utf8View: Unicode.Scalar.UTF8View) {
-        self.append(exactExtraRequiredCapacity: utf8View.count) { output in
+        self.append(extraRequiredCapacity: utf8View.count) { output in
             for byte in utf8View {
                 output.append(byte)
             }

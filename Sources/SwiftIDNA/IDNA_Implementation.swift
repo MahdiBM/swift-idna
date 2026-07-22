@@ -151,7 +151,7 @@ extension IDNA {
         if labelSpan.isASCII {
             labelByteLength = labelSpan.count
             convertedBytes.append(
-                exactExtraRequiredCapacity: labelSpan.count &+ 1
+                extraRequiredCapacity: labelSpan.count &+ 1
             ) { output in
                 output.swift_idna_append(copying: labelSpan)
                 if appendDot {
@@ -170,7 +170,7 @@ extension IDNA {
 
             labelByteLength = 4 &+ outputBufferForReuse.count
             convertedBytes.append(
-                exactExtraRequiredCapacity: 4 &+ outputBufferForReuse.count &+ 1
+                extraRequiredCapacity: 4 &+ outputBufferForReuse.count &+ 1
             ) { output in
                 output.append(.asciiLowercasedX)
                 output.append(.asciiLowercasedN)
@@ -358,7 +358,7 @@ extension IDNA {
 
         /// Reserve the exact required capacity up front so we can skip further capacity checks
         /// because we're guaranteed to have enough capacity.
-        newBytes.append(exactExtraRequiredCapacity: requiredCapacity) { output in
+        newBytes.append(extraRequiredCapacity: requiredCapacity) { output in
             while let (scalar, range) = unicodeScalarsIterator.nextWithRange(in: span) {
                 let mapping = IDNAMapping.for(scalar: scalar)
                 switch mapping.tag {
@@ -381,17 +381,17 @@ extension IDNA {
         into newBytes: inout TinyBuffer
     ) {
         let count = span.count
-        var requiredCapacity = 0
 
         SIMDUnicodeScalarDecoder.withTemporaryDecoder { decoder in
             /// Process windows of size `SIMDUnicodeScalarDecoder.windowSize`, one by one.
-            var windowStart = 0
-            while windowStart < count {
-                let windowEnd = decoder.decodeNextWindow(of: span, startIdx: windowStart)
+            var startIdx = 0
+            while startIdx < count {
+                let windowEnd = decoder.decodeNextWindow(of: span, startIdx: startIdx)
 
-                var i = windowStart
+                var requiredCapacity = 0
+                var i = startIdx
                 while i < windowEnd {
-                    let idx = i &- windowStart
+                    let idx = i &- startIdx
                     let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
                     let scalar = unsafe decoder.scalarValues[unchecked: idx]
 
@@ -408,45 +408,30 @@ extension IDNA {
                     i &+= scalarUTF8Length
                 }
 
-                windowStart = i
-            }
+                i = startIdx
+                newBytes.append(extraRequiredCapacity: requiredCapacity) { output in
+                    let idx = i &- startIdx
+                    let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
+                    let scalar = unsafe decoder.scalarValues[unchecked: idx]
 
-            /// I'm expecting this to be empty at this point, nothing special.
-            /// Tests will immediately crash if this is not the case.
-            assert(newBytes.isEmpty)
-
-            /// Reserve the exact required capacity up front so we can skip further capacity
-            /// checks because we're guaranteed to have enough capacity.
-            newBytes.append(exactExtraRequiredCapacity: requiredCapacity) { output in
-                var windowStart = 0
-                while windowStart < count {
-                    let windowEnd = decoder.decodeNextWindow(of: span, startIdx: windowStart)
-
-                    var i = windowStart
-                    while i < windowEnd {
-                        let idx = i &- windowStart
-                        let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
-                        let scalar = unsafe decoder.scalarValues[unchecked: idx]
-
-                        let mapping = IDNAMapping.for(scalar: scalar)
-                        switch mapping.tag {
-                        case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
-                            let scalarRange = unsafe Range<Int>(
-                                uncheckedBounds: (i, i &+ scalarUTF8Length)
-                            )
-                            let scalarBytesSpan = unsafe span.extracting(unchecked: scalarRange)
-                            output.swift_idna_append(copying: scalarBytesSpan)
-                        case .mapped:
-                            output.swift_idna_append(copying: mapping.mappedScalars.utf8BytesSpan)
-                        case .ignored:
-                            ()
-                        }
-
-                        i &+= scalarUTF8Length
+                    let mapping = IDNAMapping.for(scalar: scalar)
+                    switch mapping.tag {
+                    case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
+                        let scalarRange = unsafe Range<Int>(
+                            uncheckedBounds: (i, i &+ scalarUTF8Length)
+                        )
+                        let scalarBytesSpan = unsafe span.extracting(unchecked: scalarRange)
+                        output.swift_idna_append(copying: scalarBytesSpan)
+                    case .mapped:
+                        output.swift_idna_append(copying: mapping.mappedScalars.utf8BytesSpan)
+                    case .ignored:
+                        ()
                     }
 
-                    windowStart = i
+                    i &+= scalarUTF8Length
                 }
+
+                startIdx = i
             }
         }
     }
