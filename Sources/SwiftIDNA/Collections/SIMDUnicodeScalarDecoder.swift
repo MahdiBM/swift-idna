@@ -6,7 +6,7 @@
 struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Bytes decoded per window. Matches the natural byte-vector width.
     @usableFromInline
-    static var windowSize: Int { 16 }
+    static var windowSize: Int { 8 }
     /// Extra bytes for speculative decoding.
     @usableFromInline
     static var tempBytesSize: Int { Self.windowSize &+ 3 }
@@ -73,7 +73,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
         assert(encodedBytes.count >= 0 && encodedBytes.count <= Self.tempBytesSize)
 
         /// Write `encodedBytes` into `tempBytes`.
-        /// `tempBytes` has initialized above so it's valid via `tempBytes.initialize(repeating: 0)`.
+        /// `tempBytes` is initialized-memory by above code (`tempBytes.initialize(repeating: 0)`), so it's valid anyway.
         /// The pad bytes are not important.
         tempBytes.withUnsafeMutableBufferPointer { temp in
             encodedBytes.withUnsafeBufferPointer { encoded in
