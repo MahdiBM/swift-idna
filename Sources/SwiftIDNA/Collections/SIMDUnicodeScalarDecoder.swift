@@ -6,7 +6,7 @@
 struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Bytes decoded per window. Matches the natural byte-vector width.
     @usableFromInline
-    static var windowSize: Int { 8 }
+    static var windowSize: Int { 32 }
     /// Extra bytes for speculative decoding.
     @usableFromInline
     static var tempBytesSize: Int { Self.windowSize &+ 3 }
