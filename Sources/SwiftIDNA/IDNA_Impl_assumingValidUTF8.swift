@@ -129,7 +129,6 @@ extension IDNA {
                 }
             }
         } else {
-            /// TODO: can we pass convertedBytes to Punycode.encode instead of it returning a new array?
             decodedUnicodeScalars.set(utf8OffsetRange: range)
 
             Punycode.encode(
