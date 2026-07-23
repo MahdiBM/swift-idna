@@ -151,31 +151,24 @@ struct IDNATestV2Case {
         Self.customCases + allUnicodeCases()
     }
 
-    private static func allCasesValidUTF8() -> [IDNATestV2Case] {
-        Self.allCases().filter { !$0.toAsciiNStatus.contains(.A3) }
-    }
-
     /// This is better for debuggability.
     /// If a certain case is failing, we'll know what index it belongs to so we can
     /// try to investigate that case alone.
     static func enumeratedAllCases() -> [(index: Int, case: IDNATestV2Case)] {
         Self.allCases().enumerated().map { ($0, $1) }
     }
-
-    /// This is better for debuggability.
-    /// If a certain case is failing, we'll know what index it belongs to so we can
-    /// try to investigate that case alone.
-    static func enumeratedAllCasesValidUTF8() -> [(index: Int, case: IDNATestV2Case)] {
-        Self.allCasesValidUTF8().enumerated().map { ($0, $1) }
-    }
 }
 
 extension IDNATestV2Case: CustomStringConvertible {
     var description: String {
-        let sourceDebug = source.debugDescription
-        let toUnicodeDebug = toUnicode?.debugDescription ?? "nil"
+        /// For the very few invalid-UTF8 cases, these string representation will be inaccurate
+        /// as they'll be the repaired string's representation, not the original one.
+        let sourceDebug = String(decoding: source, as: UTF8.self).debugDescription
+        let toUnicodeDebug =
+            toUnicode.map { String(decoding: $0, as: UTF8.self).debugDescription } ?? "nil"
         let toUnicodeStatusDebug = toUnicodeStatus.debugDescription
-        let toAsciiNDebug = toAsciiN?.debugDescription ?? "nil"
+        let toAsciiNDebug =
+            toAsciiN.map { String(decoding: $0, as: UTF8.self).debugDescription } ?? "nil"
         let toAsciiNStatusDebug = toAsciiNStatus.debugDescription
         return
             "IDNATestV2Case(source: \(sourceDebug), toUnicode: \(toUnicodeDebug), toUnicodeStatus: \(toUnicodeStatusDebug), toAsciiN: \(toAsciiNDebug), toAsciiNStatus: \(toAsciiNStatusDebug))"
