@@ -47,7 +47,7 @@ enum Punycode {
     /// Returns true if successful and false if conversion failed.
     ///
     /// This function uses unchecked/unsafe handling of some values. These are all safe.
-    /// This function is heavily tested with 12_000+ tests from Unicode's IDNA V2 test suite.
+    /// This function is heavily tested with 6400 tests from Unicode's IDNA V2 test suite.
     ///
     /// This function does not do overflow handling because based on RFC 3492,
     /// overflows are not possible for what matches the description of Swift's `Unicode.Scalar` type:
@@ -167,7 +167,7 @@ enum Punycode {
     /// Returns true if successful and false if conversion failed.
     ///
     /// This function uses unchecked/unsafe handling of some values. These are all safe.
-    /// This function is heavily tested with 12_000+ tests from Unicode's IDNA V2 test suite.
+    /// This function is heavily tested with 6400 tests from Unicode's IDNA V2 test suite.
     ///
     /// This function does not do overflow handling because based on RFC 3492,
     /// overflows are not possible for what matches the description of Swift's `Unicode.Scalar` type:

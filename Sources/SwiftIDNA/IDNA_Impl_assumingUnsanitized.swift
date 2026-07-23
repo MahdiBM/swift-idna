@@ -28,11 +28,10 @@ extension IDNA {
                     span: span,
                     reuseBuffer: &convertedBytes,
                     output: &processedBytes,
-                    errors: &errors,
-                    /// The SIMD decoder regresses this larger toASCII path; use the per-scalar one.
-                    useSIMDDecoder: false
+                    errors: &errors
                 )
 
+                /// Notice no `span` (direct user input) is passed to this function.
                 return self._toASCII(
                     convertedBytes: &convertedBytes,
                     processedBytes: &processedBytes,
@@ -77,9 +76,7 @@ extension IDNA {
                     span: span,
                     reuseBuffer: &reuseBuffer,
                     output: &utf8Bytes,
-                    errors: &errors,
-                    /// The SIMD decoder wins on this smaller toUnicode path.
-                    useSIMDDecoder: true
+                    errors: &errors
                 )
 
                 return utf8Bytes.takeAsConversionResult()
@@ -102,8 +99,7 @@ extension IDNA {
         span: Span<UInt8>,
         reuseBuffer newBytes: inout TinyBuffer,
         output newerBytes: inout TinyBuffer,
-        errors: inout MappingErrors,
-        useSIMDDecoder: Bool
+        errors: inout MappingErrors
     ) {
         /// 1. Map
         self.mapToIDNAMappings(
@@ -115,8 +111,7 @@ extension IDNA {
         self._mainProcessing(
             reuseBuffer: &newBytes,
             output: &newerBytes,
-            errors: &errors,
-            useSIMDDecoder: useSIMDDecoder
+            errors: &errors
         )
     }
 

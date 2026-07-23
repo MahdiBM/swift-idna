@@ -8,6 +8,10 @@ extension IDNA {
         processedBytes: inout TinyBuffer,
         errors: inout MappingErrors
     ) -> ConversionResult {
+        assert(convertedBytes.withSpan { $0.checkUTF8() })
+        assert(processedBytes.withSpan { $0.checkUTF8() })
+        /// From now on we know we are operating only on valid UTF-8 bytes.
+
         // 2., 3.
         let outputReuseCapacityHint = convertedBytes.count
         convertedBytes.removeAll(keepingCapacity: true)
@@ -177,8 +181,7 @@ extension IDNA {
     func _mainProcessing(
         reuseBuffer newBytes: inout TinyBuffer,
         output newerBytes: inout TinyBuffer,
-        errors: inout MappingErrors,
-        useSIMDDecoder: Bool
+        errors: inout MappingErrors
     ) {
         assert(newBytes.withSpan { $0.checkUTF8() })
         assert(newerBytes.isEmpty)
