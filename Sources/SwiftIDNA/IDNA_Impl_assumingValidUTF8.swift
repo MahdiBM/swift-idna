@@ -237,58 +237,64 @@ extension IDNA {
     @inlinable
     func maxLabelLength(span: Span<UInt8>) -> Int {
         let count = span.count
+
         var maxLabelLength = 0
         var startIndex = 0
 
-        span.withUnsafeBytes { buffer in
-            let base = unsafe buffer.baseAddress.unsafelyUnwrapped
-
-            /// SWAR scan for `.` (0x2E), 8 bytes at a time.
-            /// Whole 8-byte chunks with no dot extend the current label for free.
-            let dotBroadcast: UInt64 = 0x2E2E_2E2E_2E2E_2E2E
-            let lowBits: UInt64 = 0x0101_0101_0101_0101
-            let highBits: UInt64 = 0x8080_8080_8080_8080
+        return span.withUnsafeBytes { buffer in
+            guard let base = buffer.baseAddress else {
+                return 0
+            }
 
             var idx = 0
+            /// Only enter the loop while a full 8-byte word still fits.
             while idx &+ 8 <= count {
+                /// Load the next eight bytes as a little-endian word, so that byte `idx` is
+                /// the least significant one and bit positions map back to byte offsets.
                 let word = unsafe UInt64(
                     littleEndian: base.loadUnaligned(fromByteOffset: idx, as: UInt64.self)
                 )
-                let x = word ^ dotBroadcast
-                var mask = (x &- lowBits) & ~x & highBits
+                /// Every byte that equals `.` (0x2E) becomes 0, every other byte becomes non-zero.
+                let dots = word ^ 0x2E2E_2E2E_2E2E_2E2E
+                /// Subtracting `1` from each byte underflows only the zero bytes into the neighboring high bit.
+                /// It also flips the high bit of any non-zero byte in `0x01 ... 0x80`.
+                let underflowed = dots &- 0x0101_0101_0101_0101
+                /// Discard the bytes that were not zero to begin with. `~dots` has a set high bit
+                /// only where `dots` did not, that is, only in bytes that were `0x00 ... 0x7F`.
+                let onlyZeroBytes = underflowed & ~dots
+                /// Keep just the high bit of each byte, so every `.` is left as a single `0x80` marker.
+                var mask = onlyZeroBytes & 0x8080_8080_8080_8080
 
+                /// `mask` is zero for the common case of a chunk with no `.`, so this whole
+                /// loop is skipped and the current label just keeps growing.
                 while mask != 0 {
+                    /// The lowest set bit sits in the byte of the first remaining `.`; dividing
+                    /// its bit position by 8 turns it back into a byte offset.
                     let dotIndex = idx &+ (mask.trailingZeroBitCount &>> 3)
-                    maxLabelLength = max(
-                        maxLabelLength,
-                        dotIndex &- startIndex
-                    )
+                    /// The label ends right before this `.`, so record its length.
+                    maxLabelLength = max(maxLabelLength, dotIndex &- startIndex)
+                    /// The next label starts right after this `.`.
                     startIndex = dotIndex &+ 1
+                    /// Clear the lowest set bit and move on to the next `.` in this chunk.
                     mask &= mask &- 1
                 }
 
                 idx &+= 8
             }
 
-            /// Scalar tail for the remaining `< 8` bytes.
+            /// Measure the remaining fewer-than-8 bytes one at a time.
             while idx < count {
+                /// Same measuring as above, but for a single byte.
                 if unsafe base.loadUnaligned(fromByteOffset: idx, as: UInt8.self) == .asciiDot {
-                    maxLabelLength = max(
-                        maxLabelLength,
-                        idx &- startIndex
-                    )
+                    maxLabelLength = max(maxLabelLength, idx &- startIndex)
                     startIndex = idx &+ 1
                 }
                 idx &+= 1
             }
+
+            /// The final label has no trailing `.`, so it ends at `count`.
+            return max(maxLabelLength, count &- startIndex)
         }
-
-        maxLabelLength = max(
-            maxLabelLength,
-            count &- startIndex
-        )
-
-        return maxLabelLength
     }
 
     /// https://www.unicode.org/reports/tr46/#ProcessingStepConvertValidate

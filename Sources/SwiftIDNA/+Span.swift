@@ -140,7 +140,7 @@ extension Span<UInt8> {
         SIMDUnicodeScalarDecoder.withTemporaryDecoder { decoder in
             /// Process windows of size `SIMDUnicodeScalarDecoder.windowSize`, one by one.
             var startIdx = 0
-            while startIdx < count {
+            outerLoop: while startIdx < count {
                 let windowEnd = decoder.decodeNextWindow(of: self, startIdx: startIdx)
 
                 var i = startIdx
@@ -151,6 +151,7 @@ extension Span<UInt8> {
 
                     if Unicode.Scalar(uncheckedScalar) == nil {
                         seenInvalidUTF8 = true
+                        break outerLoop
                     }
 
                     i &+= scalarUTF8Length

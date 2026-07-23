@@ -57,12 +57,29 @@ extension String {
     /// Initializes a `String` by assuming the given span contains any bytes (including invalid UTF-8 bytes).
     @usableFromInline
     init(span: Span<UInt8>) {
-        if span.checkUTF8() {
-            self = String(_uncheckedAssumingValidUTF8: span)
-        } else {
-            self = span.withUnsafeBytes {
-                unsafe String(decoding: $0, as: UTF8.self)
+        /// String(copying:) is faster but doesn't do UTF8 repairing.
+        if #available(SwiftStdlib 6.2, *), span.checkUTF8() {
+            let utf8Span = unsafe UTF8Span(unchecked: span)
+            self.init(copying: utf8Span)
+        } else if #available(SwiftStdlib 5.3, *) {
+            self.init(unsafeUninitializedCapacity: span.count) { buffer in
+                span.withUnsafeBytes { spanPtr in
+                    let rawBuffer = UnsafeMutableRawBufferPointer(buffer)
+                    unsafe rawBuffer.copyMemory(from: spanPtr)
+                }
+                return span.count
             }
+        } else {
+            let array = unsafe [UInt8].init(
+                unsafeUninitializedCapacity: span.count
+            ) { buffer, initializedCount in
+                span.withUnsafeBytes { spanPtr in
+                    let rawBuffer = UnsafeMutableRawBufferPointer(buffer)
+                    unsafe rawBuffer.copyMemory(from: spanPtr)
+                }
+                initializedCount = span.count
+            }
+            self.init(decoding: array, as: UTF8.self)
         }
     }
 
