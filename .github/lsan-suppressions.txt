@@ -5,3 +5,4 @@ leak:load_images
 leak:_NSInitializePlatform
 leak:_libxpc_initializer
 leak:libSystem_initializer
+leak:runInitializersBottomUp

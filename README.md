@@ -107,58 +107,48 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 * The results below are all reproducible by simply running `scripts/benchmark.sh` on a machine of your own.
 * These were performed on a dedicated-cpu-core machine from Hetzner, on Ubuntu 24.04.
 * swift-foundation applies short-circuits of its own for ascii domain names so it _should_ perform better than ICU (but likely still not as good as swift-idna).
+* The benchmarks below are run in deterministically random order over multiple domain.
+  * This is to simulate a real-world workload, and so the CPU can't over-fit over specific patterns.
 * Last update: Jul 23, 2026
 
 ### Summary
 
 > [!NOTE]
-> * swift-idna wins 17 of the 20 benchmarks, ties 1, loses 2.
+> * swift-idna wins 5 of the 8 benchmarks, ties 1, loses 2.
 > * swift-idna commits considerably less heap allocations.
 > * swift-idna is much faster for the vast majority of the domain names in the wild, which are ASCII.
-
-### Non-ASCII Domain Names
-
-#### CPU Time
-
-| Domain           | Operation  | swift-idna (ns/op) | ICU (ns/op) | Speedup |
-| ---------------- | ---------- | ------------------ | ----------- | ------- |
-| Multiple domains | To ASCII   | 566.7              | 466.7       | 0.82x   |
-| Multiple domains | To Unicode | 550.0              | 550.0       | 1.00x   |
-
-#### Malloc Count
-
-| Domain           | Operation  | swift-idna (allocs/op) | ICU (allocs/op) | Improv. %     |
-| ---------------- | ---------- | ---------------------- | --------------- | ------------- |
-| Multiple domains | To ASCII   | 3.15                   | 3.54            | 1.12x (-0.38) |
-| Multiple domains | To Unicode | 2.62                   | 1.92            | 0.74x (+0.69) |
 
 ### ASCII Domain Names
 
 #### CPU Time
 
-| Domain                     | Operation  | swift-idna (ns/op) | ICU (ns/op) | Speedup |
-| -------------------------- | ---------- | ------------------ | ----------- | ------- |
-| google.com                 | To ASCII   | 18.8               | 72.5        | 3.87x   |
-| GOOGLE.COM                 | To ASCII   | 23.8               | 75.0        | 3.16x   |
-| google.com                 | To Unicode | 21.2               | 75.0        | 3.53x   |
-| GOOGLE.COM                 | To Unicode | 28.0               | 72.0        | 2.57x   |
-| app-analytics-services.com | To ASCII   | 18.8               | 105.0       | 5.60x   |
-| APP-ANALYTICS-SERVICES.COM | To ASCII   | 43.3               | 106.7       | 2.46x   |
-| app-analytics-services.com | To Unicode | 26.7               | 111.7       | 4.19x   |
-| APP-ANALYTICS-SERVICES.COM | To Unicode | 53.3               | 106.7       | 2.00x   |
+| Domain     | Operation  | swift-idna (ns/op) | ICU (ns/op) | Speedup |
+| ---------- | ---------- | ------------------ | ----------- | ------- |
+| 20 domains | To ASCII   | 23.4               | 135.7       | 5.80x   |
+| 20 domains | To Unicode | 29.3               | 135.1       | 4.60x   |
 
 #### Malloc Count
 
-| Domain                     | Operation  | swift-idna (allocs/op) | ICU (allocs/op) | Improv. % |
-| -------------------------- | ---------- | ---------------------- | --------------- | --------- |
-| google.com                 | To ASCII   | 0                      | 1               | ∞  (-1)   |
-| GOOGLE.COM                 | To ASCII   | 0                      | 1               | ∞  (-1)   |
-| google.com                 | To Unicode | 0                      | 1               | ∞  (-1)   |
-| GOOGLE.COM                 | To Unicode | 0                      | 1               | ∞  (-1)   |
-| app-analytics-services.com | To ASCII   | 0                      | 2               | ∞  (-2)   |
-| APP-ANALYTICS-SERVICES.COM | To ASCII   | 1                      | 2               | 2x (-1)   |
-| app-analytics-services.com | To Unicode | 0                      | 2               | ∞  (-2)   |
-| APP-ANALYTICS-SERVICES.COM | To Unicode | 1                      | 2               | 2x (-1)   |
+| Domain     | Operation  | swift-idna (allocs/op) | ICU (allocs/op) | Improvement |
+| ---------- | ---------- | ---------------------- | --------------- | ----------- |
+| 20 domains | To ASCII   | 0.05                   | 1.15            | 23x (-1.10) |
+| 20 domains | To Unicode | 0.05                   | 1.15            | 23x (-1.10) |
+
+### Non-ASCII Domain Names
+
+#### CPU Time
+
+| Domain     | Operation  | swift-idna (ns/op) | ICU (ns/op) | Speedup |
+| -----------| ---------- | ------------------ | ----------- | ------- |
+| 13 domains | To ASCII   | 566.7              | 466.7       | 0.82x   |
+| 13 domains | To Unicode | 550.0              | 550.0       | 1.00x   |
+
+#### Malloc Count
+
+| Domain     | Operation  | swift-idna (allocs/op) | ICU (allocs/op) | Improvement |
+| ---------- | ---------- | ---------------------- | --------------- | ----------- |
+| 13 domains | To ASCII   | 3.15                   | 3.54            | 1.12x       |
+| 13 domains | To Unicode | 2.62                   | 1.92            | 0.74x       |
 
 ## How To Add swift-idna To Your Project
 
