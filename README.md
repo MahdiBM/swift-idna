@@ -107,7 +107,7 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 * The results below are all reproducible by simply running `scripts/benchmark.sh` on a machine of your own.
 * These were performed on a dedicated-cpu-core machine from Hetzner, on Ubuntu 24.04.
 * swift-foundation applies short-circuits of its own for ascii domain names so it _should_ perform better than ICU (but likely still not as good as swift-idna).
-* The benchmarks below are run in deterministically random order over multiple domain.
+* The benchmarks below are run in deterministically random order over multiple domains.
   * This is to simulate a real-world workload, and so the CPU can't over-fit over specific patterns.
 * Last update: Jul 23, 2026
 
@@ -120,6 +120,9 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 
 ### ASCII Domain Names
 
+* These are performed on 20 different ASCII domain names in [Cloudflare's top domains](https://radar.cloudflare.com/domains) list in top 50.
+* 4 domain names are uppercased to account for such domains.
+
 #### CPU Time
 
 | Domain     | Operation  | swift-idna (ns/op) | ICU (ns/op) | Speedup |
@@ -131,15 +134,17 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 
 | Domain     | Operation  | swift-idna (allocs/op) | ICU (allocs/op) | Improvement |
 | ---------- | ---------- | ---------------------- | --------------- | ----------- |
-| 20 domains | To ASCII   | 0.05                   | 1.15            | 23x (-1.10) |
-| 20 domains | To Unicode | 0.05                   | 1.15            | 23x (-1.10) |
+| 20 domains | To ASCII   | 0.05                   | 1.15            | 23x         |
+| 20 domains | To Unicode | 0.05                   | 1.15            | 23x         |
 
 ### Non-ASCII Domain Names
+
+* These are performed on all the 13 different non-ASCII domain names in [Cloudflare's top domains](https://radar.cloudflare.com/domains) list in top 50_000.
 
 #### CPU Time
 
 | Domain     | Operation  | swift-idna (ns/op) | ICU (ns/op) | Speedup |
-| -----------| ---------- | ------------------ | ----------- | ------- |
+| ---------- | ---------- | ------------------ | ----------- | ------- |
 | 13 domains | To ASCII   | 566.7              | 466.7       | 0.82x   |
 | 13 domains | To Unicode | 550.0              | 550.0       | 1.00x   |
 
