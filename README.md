@@ -105,13 +105,14 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 
 * To see up to date information about performance of this package, please go to this [benchmarks list](https://github.com/swift-dns/swift-idna/actions/workflows/benchmarks.yml?query=branch%3Amain), and choose the most recent benchmark. You'll see a summary of the benchmark there.
 * The results below are all reproducible by simply running `scripts/benchmark.sh` on a machine of your own.
+* These were performed on a dedicated-cpu-core machine from Hetzner, on Ubuntu 24.04.
 * swift-foundation applies short-circuits of its own for ascii domain names so it _should_ perform better than ICU (but likely still not as good as swift-idna).
-* Last update: Jul 22, 2026
+* Last update: Jul 23, 2026
 
 ### Summary
 
 > [!NOTE]
-> * swift-idna wins 18 of the 24 benchmarks, ties 4, loses 2.
+> * swift-idna wins 17 of the 20 benchmarks, ties 1, loses 2.
 > * swift-idna commits considerably less heap allocations.
 > * swift-idna is much faster for the vast majority of the domain names in the wild, which are ASCII.
 
@@ -119,49 +120,45 @@ The C code is all automatically generated using the 2 scripts in `utils/`:
 
 #### CPU Time
 
-| Benchmark                                  | ICU   | swift-idna | Improv. % |
-| ------------------------------------------ | ----- | ---------- | --------- |
-| To_ASCII_Lax_生命之花_dot_中国_CPU_200K      | 100ms | 100ms      | 1x        |
-| To_ASCII_Lax_Multiple_Domains_CPU_300K     | 150ms | 170ms      | 0.88x     |
-| To_Unicode_Lax_生命之花_dot_中国_CPU_200K    | 130ms | 130ms      | 1x        |
-| To_Unicode_Lax_Multiple_Domains_CPU_200K   | 110ms | 110ms      | 1x        |
+| Domain           | Operation  | swift-idna (ns/op) | ICU (ns/op) | Speedup |
+| ---------------- | ---------- | ------------------ | ----------- | ------- |
+| Multiple domains | To ASCII   | 566.7              | 466.7       | 0.82x   |
+| Multiple domains | To Unicode | 550.0              | 550.0       | 1.00x   |
 
 #### Malloc Count
 
-| Benchmark                                | ICU | swift-idna | Improv. %  |
-| ---------------------------------------- | --- | ---------- | ---------- |
-| To_ASCII_Lax_生命之花_dot_中国_Malloc      | 5   | 4          | 1.25x (-1) |
-| To_ASCII_Lax_Multiple_Domains_Malloc     | 46  | 40         | 1.15x (-6) |
-| To_Unicode_Lax_生命之花_dot_中国_Malloc    | 4   | 4          | 1x    (0)  |
-| To_Unicode_Lax_Multiple_Domains_Malloc   | 25  | 34         | 0.74x (+9) |
+| Domain           | Operation  | swift-idna (allocs/op) | ICU (allocs/op) | Improv. %     |
+| ---------------- | ---------- | ---------------------- | --------------- | ------------- |
+| Multiple domains | To ASCII   | 3.15                   | 3.54            | 1.12x (-0.38) |
+| Multiple domains | To Unicode | 2.62                   | 1.92            | 0.74x (+0.69) |
 
 ### ASCII Domain Names
 
 #### CPU Time
 
-| Benchmark                                                   | ICU   | swift-idna | Improv. % |
-| ----------------------------------------------------------- | ----- | ---------- | --------- |
-| To_ASCII_Lowercased_app-analytics-services_dot_com_CPU_8M   | 860ms | 160ms      | 5.38x     |
-| To_ASCII_Lowercased_google_dot_com_CPU_8M                   | 590ms | 150ms      | 3.93x     |
-| To_ASCII_Uppercased_app-analytics-services_dot_com_CPU_3M   | 340ms | 140ms      | 2.43x     |
-| To_ASCII_Uppercased_google_dot_com_CPU_8M                   | 580ms | 200ms      | 2.9x      |
-| To_Unicode_Lowercased_app-analytics-services_dot_com_CPU_6M | 630ms | 170ms      | 3.71x     |
-| To_Unicode_Lowercased_google_dot_com_CPU_8M                 | 570ms | 170ms      | 3.35x     |
-| To_Unicode_Uppercased_app-analytics-services_dot_com_CPU_3M | 320ms | 170ms      | 1.88x     |
-| To_Unicode_Uppercased_google_dot_com_CPU_5M                 | 360ms | 150ms      | 2.4x      |
+| Domain                     | Operation  | swift-idna (ns/op) | ICU (ns/op) | Speedup |
+| -------------------------- | ---------- | ------------------ | ----------- | ------- |
+| google.com                 | To ASCII   | 18.8               | 72.5        | 3.87x   |
+| GOOGLE.COM                 | To ASCII   | 23.8               | 75.0        | 3.16x   |
+| google.com                 | To Unicode | 21.2               | 75.0        | 3.53x   |
+| GOOGLE.COM                 | To Unicode | 28.0               | 72.0        | 2.57x   |
+| app-analytics-services.com | To ASCII   | 18.8               | 105.0       | 5.60x   |
+| APP-ANALYTICS-SERVICES.COM | To ASCII   | 43.3               | 106.7       | 2.46x   |
+| app-analytics-services.com | To Unicode | 26.7               | 111.7       | 4.19x   |
+| APP-ANALYTICS-SERVICES.COM | To Unicode | 53.3               | 106.7       | 2.00x   |
 
 #### Malloc Count
 
-| Benchmark                                                   | ICU | swift-idna | Improv. % |
-| ----------------------------------------------------------- | --- | ---------- | --------- |
-| To_ASCII_Lowercased_app-analytics-services_dot_com_Malloc   | 2   | 0          | ∞  (-2)   |
-| To_ASCII_Lowercased_google_dot_com_Malloc                   | 1   | 0          | ∞  (-1)   |
-| To_ASCII_Uppercased_app-analytics-services_dot_com_Malloc   | 2   | 1          | 2x (-1)   |
-| To_ASCII_Uppercased_google_dot_com_Malloc                   | 1   | 0          | ∞  (-1)   |
-| To_Unicode_Lowercased_app-analytics-services_dot_com_Malloc | 2   | 0          | ∞  (-2)   |
-| To_Unicode_Lowercased_google_dot_com_Malloc                 | 1   | 0          | ∞  (-1)   |
-| To_Unicode_Uppercased_app-analytics-services_dot_com_Malloc | 2   | 1          | 2x (-1)   |
-| To_Unicode_Uppercased_google_dot_com_Malloc                 | 1   | 0          | ∞  (-1)   |
+| Domain                     | Operation  | swift-idna (allocs/op) | ICU (allocs/op) | Improv. % |
+| -------------------------- | ---------- | ---------------------- | --------------- | --------- |
+| google.com                 | To ASCII   | 0                      | 1               | ∞  (-1)   |
+| GOOGLE.COM                 | To ASCII   | 0                      | 1               | ∞  (-1)   |
+| google.com                 | To Unicode | 0                      | 1               | ∞  (-1)   |
+| GOOGLE.COM                 | To Unicode | 0                      | 1               | ∞  (-1)   |
+| app-analytics-services.com | To ASCII   | 0                      | 2               | ∞  (-2)   |
+| APP-ANALYTICS-SERVICES.COM | To ASCII   | 1                      | 2               | 2x (-1)   |
+| app-analytics-services.com | To Unicode | 0                      | 2               | ∞  (-2)   |
+| APP-ANALYTICS-SERVICES.COM | To Unicode | 1                      | 2               | 2x (-1)   |
 
 ## How To Add swift-idna To Your Project
 
