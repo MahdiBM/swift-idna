@@ -236,25 +236,56 @@ extension IDNA {
     /// Assumes the span does not contain any label separators other than `.`.
     @inlinable
     func maxLabelLength(span: Span<UInt8>) -> Int {
+        let count = span.count
         var maxLabelLength = 0
         var startIndex = 0
 
-        for idx in span.indices {
-            /// Unchecked because idx comes right from `newBytesSpan.indices`
-            guard span[idx] == .asciiDot else {
-                continue
+        span.withUnsafeBytes { buffer in
+            let base = unsafe buffer.baseAddress.unsafelyUnwrapped
+
+            /// SWAR scan for `.` (0x2E), 8 bytes at a time.
+            /// Whole 8-byte chunks with no dot extend the current label for free.
+            let dotBroadcast: UInt64 = 0x2E2E_2E2E_2E2E_2E2E
+            let lowBits: UInt64 = 0x0101_0101_0101_0101
+            let highBits: UInt64 = 0x8080_8080_8080_8080
+
+            var idx = 0
+            while idx &+ 8 <= count {
+                let word = unsafe UInt64(
+                    littleEndian: base.loadUnaligned(fromByteOffset: idx, as: UInt64.self)
+                )
+                let x = word ^ dotBroadcast
+                var mask = (x &- lowBits) & ~x & highBits
+
+                while mask != 0 {
+                    let dotIndex = idx &+ (mask.trailingZeroBitCount &>> 3)
+                    maxLabelLength = max(
+                        maxLabelLength,
+                        dotIndex &- startIndex
+                    )
+                    startIndex = dotIndex &+ 1
+                    mask &= mask &- 1
+                }
+
+                idx &+= 8
             }
 
-            maxLabelLength = max(
-                maxLabelLength,
-                idx &- startIndex
-            )
-            startIndex = idx &+ 1
+            /// Scalar tail for the remaining `< 8` bytes.
+            while idx < count {
+                if unsafe base.loadUnaligned(fromByteOffset: idx, as: UInt8.self) == .asciiDot {
+                    maxLabelLength = max(
+                        maxLabelLength,
+                        idx &- startIndex
+                    )
+                    startIndex = idx &+ 1
+                }
+                idx &+= 1
+            }
         }
 
         maxLabelLength = max(
             maxLabelLength,
-            span.count &- startIndex
+            count &- startIndex
         )
 
         return maxLabelLength
