@@ -280,7 +280,7 @@ extension IDNA {
         {
             errors.append(
                 .labelStartsWithXNHyphenMinusHyphenMinusButContainsNonASCII(
-                    label: String(_uncheckedAssumingValidUTF8: span)
+                    label: String(span: span)
                 )
             )
             /// continue to next label
@@ -336,7 +336,7 @@ extension IDNA {
             case false:
                 errors.append(
                     .labelPunycodeDecodeFailed(
-                        label: String(_uncheckedAssumingValidUTF8: span)
+                        label: String(span: span)
                     )
                 )
                 /// continue to next label
@@ -354,7 +354,7 @@ extension IDNA {
         if span.isEmpty {
             errors.append(
                 .labelIsEmptyAfterPunycodeConversion(
-                    label: String(_uncheckedAssumingValidUTF8: span)
+                    label: String(span: span)
                 )
             )
         }
@@ -362,7 +362,7 @@ extension IDNA {
         if span.isASCII {
             errors.append(
                 .labelContainsOnlyASCIIAfterPunycodeDecode(
-                    label: String(_uncheckedAssumingValidUTF8: span)
+                    label: String(span: span)
                 )
             )
         }
@@ -379,7 +379,7 @@ extension IDNA {
         {
             errors.append(
                 .labelIsNotInNormalizationFormC(
-                    label: String(_uncheckedAssumingValidUTF8: span)
+                    label: String(span: span)
                 )
             )
         }
@@ -393,7 +393,7 @@ extension IDNA {
             {
                 errors.append(
                     .trueCheckHyphensArgumentRequiresLabelToNotContainHyphenMinusAtPostion3and4(
-                        label: String(_uncheckedAssumingValidUTF8: span)
+                        label: String(span: span)
                     )
                 )
             }
@@ -403,7 +403,7 @@ extension IDNA {
             {
                 errors.append(
                     .trueCheckHyphensArgumentRequiresLabelToNotStartOrEndWithHyphenMinus(
-                        label: String(_uncheckedAssumingValidUTF8: span)
+                        label: String(span: span)
                     )
                 )
             }
@@ -413,7 +413,7 @@ extension IDNA {
             {
                 errors.append(
                     .falseCheckHyphensArgumentRequiresLabelToNotStartWithXNHyphenMinusHyphenMinus(
-                        label: String(_uncheckedAssumingValidUTF8: span)
+                        label: String(span: span)
                     )
                 )
             }
@@ -427,7 +427,7 @@ extension IDNA {
         {
             errors.append(
                 .labelStartsWithCombiningMark(
-                    label: String(_uncheckedAssumingValidUTF8: span)
+                    label: String(span: span)
                 )
             )
         }
@@ -450,7 +450,7 @@ extension IDNA {
                         errors.append(
                             .labelContainsInvalidUnicode(
                                 uncheckedScalar,
-                                label: [UInt8](copying: span)
+                                label: String(span: span)
                             )
                         )
                     }
@@ -462,7 +462,7 @@ extension IDNA {
                     {
                         errors.append(
                             .trueUseSTD3ASCIIRulesArgumentRequiresLabelToOnlyContainCertainASCIICharacters(
-                                label: String(_uncheckedAssumingValidUTF8: span)
+                                label: String(span: span)
                             )
                         )
                     }

@@ -26,7 +26,7 @@ struct DecodedUnicodeScalars: ~Copyable {
                     /// This type is to use in punycode-encode func so we preemptively assume that.
                     errors.append(
                         .labelPunycodeEncodeFailed(
-                            label: [UInt8](copying: utf8Bytes)
+                            label: String(span: utf8Bytes)
                         )
                     )
                     /// Error already appended in mapToIDNAMappings

@@ -48,16 +48,17 @@ extension IDNA {
                 unsafe errors.append(contentsOf: spanPtr)
             }
             return CollectedMappingErrors(
-                domainName: String(span: self.domainNameSpan) ?? "<non-utf8-domain-name>",
+                domainName: String(span: self.domainNameSpan),
                 errors: errors
             )
         }
     }
 
+    /// If a label contains invalid UTF8, the String representation of it will be repaired into valid UTF8.
     @nonexhaustive
     public enum MappingError: Sendable, CustomStringConvertible {
         case labelStartsWithXNHyphenMinusHyphenMinusButContainsNonASCII(label: String)
-        case labelPunycodeEncodeFailed(label: [UInt8])
+        case labelPunycodeEncodeFailed(label: String)
         case labelPunycodeDecodeFailed(label: String)
         case labelIsEmptyAfterPunycodeConversion(label: String)
         case labelContainsOnlyASCIIAfterPunycodeDecode(label: String)
@@ -83,11 +84,12 @@ extension IDNA {
             label: String
         )
         case labelStartsWithCombiningMark(label: String)
-        case labelContainsInvalidUnicode(UInt32, label: [UInt8])
+        case labelContainsInvalidUnicode(UInt32, label: String)
         case trueUseSTD3ASCIIRulesArgumentRequiresLabelToOnlyContainCertainASCIICharacters(
             label: String
         )
 
+        /// If a label contains invalid UTF8, the String representation of it is repaired into valid UTF8.
         public var description: String {
             switch self {
             case .labelStartsWithXNHyphenMinusHyphenMinusButContainsNonASCII(let label):

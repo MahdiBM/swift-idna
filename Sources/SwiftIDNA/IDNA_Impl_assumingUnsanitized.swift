@@ -146,7 +146,7 @@ extension IDNA {
                         errors.append(
                             .labelContainsInvalidUnicode(
                                 uncheckedScalar,
-                                label: [UInt8](copying: span)
+                                label: String(span: span)
                             )
                         )
                         i &+= scalarUTF8Length
