@@ -91,6 +91,7 @@ extension IDNA {
                     errors: &errors
                 )
 
+                /// Notice no `span` (direct user input) is passed to this function.
                 self._mainProcessing(
                     reuseBuffer: &reuseBuffer,
                     output: &utf8Bytes,

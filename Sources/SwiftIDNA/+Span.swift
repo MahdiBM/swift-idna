@@ -129,7 +129,7 @@ extension Span<UInt8> {
         }
     }
 
-    /// Ensures the span contains only valid UTF-8 bytes.
+    /// Returns true if the span contains only valid UTF-8 bytes.
     @inlinable
     func checkUTF8() -> Bool {
         if self.isASCII {
