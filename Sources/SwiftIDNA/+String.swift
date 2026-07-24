@@ -1,31 +1,5 @@
 @available(SwiftStdlib 5.1, *)
 extension String {
-    /// Whether or not the string's code points are all in Normalization Form C (NFC).
-    /// This function directly checks the string's code points against what we would have if
-    /// we converted the string to NFC, and returns `true` if they are the same.
-    @inlinable
-    func isEqualToNFCCodePointsOfSelf() -> Bool {
-        var copy = self
-        return copy.withSpan_Compatibility { span -> Bool in
-            var idx = 0
-            var isInNFC = true
-            let currentCount = span.count
-
-            self._withNFCCodeUnits { utf8Byte in
-                if !isInNFC { return }
-
-                if unsafe currentCount <= idx || utf8Byte != span[unchecked: idx] {
-                    isInNFC = false
-                    return
-                }
-
-                idx &+= 1
-            }
-
-            return isInNFC
-        }
-    }
-
     /// Initializes a `String` by assuming the given span contains valid UTF-8 bytes.
     @usableFromInline
     init(_uncheckedAssumingValidUTF8 span: Span<UInt8>) {

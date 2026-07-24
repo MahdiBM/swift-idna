@@ -39,7 +39,6 @@ struct IDNATests {
     }
 
     static func makeStringFunction(
-        source: [UInt8],
         idnaFunction:
             @escaping (IDNA) -> ((String) throws(CollectedMappingErrors) -> String)
     ) -> IDNAResolvedFunctionType {
@@ -88,7 +87,7 @@ struct IDNATests {
         var statuses = arg.toUnicodeStatus + arg.toAsciiNStatus
         try runTestCase(
             idna: &idna,
-            function: Self.makeStringFunction(source: arg.source, idnaFunction: IDNA.toASCII),
+            function: Self.makeStringFunction(idnaFunction: IDNA.toASCII),
             source: arg.source,
             expected: arg.toAsciiN,
             remainingStatuses: &statuses
@@ -124,7 +123,7 @@ struct IDNATests {
         var statuses = arg.toUnicodeStatus
         try runTestCase(
             idna: &idna,
-            function: Self.makeStringFunction(source: arg.source, idnaFunction: IDNA.toUnicode),
+            function: Self.makeStringFunction(idnaFunction: IDNA.toUnicode),
             source: arg.source,
             expected: arg.toUnicode,
             remainingStatuses: &statuses

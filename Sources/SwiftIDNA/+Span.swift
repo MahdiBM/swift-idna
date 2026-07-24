@@ -12,11 +12,22 @@ extension Span<UInt8> {
     }
 
     /// Whether or not the span scalars are all in Normalization Form C (NFC).
-    @usableFromInline
+    @inlinable
     var isInNFC: Bool {
-        if self.isEmpty || self.isASCII { return true }
-        let string = String(_uncheckedAssumingValidUTF8: self)
-        return string.isEqualToNFCCodePointsOfSelf()
+        if NFCNormalization.quickCheck(self) {
+            return true
+        }
+        return NFCNormalization.withNFCNormalized(self) { normalizedSpan in
+            if normalizedSpan.count != self.count {
+                return false
+            }
+            for idx in self.indices {
+                if unsafe normalizedSpan[unchecked: idx] != self[idx] {
+                    return false
+                }
+            }
+            return true
+        }
     }
 
     /// Checks if contains any labels that start with “xn--”

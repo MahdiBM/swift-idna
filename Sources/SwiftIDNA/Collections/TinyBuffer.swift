@@ -194,7 +194,7 @@ enum TinyBuffer: ~Copyable, ~Escapable {
 
     /// Gives access to the underlying buffer as a `Span<UInt8>`.
     @inlinable
-    func withSpan<T>(_ block: (Span<UInt8>) -> T) -> T {
+    func withSpan<T: ~Copyable>(_ block: (Span<UInt8>) -> T) -> T {
         switch self {
         case .inline(let elements):
             return elements.withSpan(block)
@@ -268,15 +268,41 @@ enum TinyBuffer: ~Copyable, ~Escapable {
     }
 
     /// Ensures the buffer contains only valid UTF-8 and NFC-normalized bytes.
+    ///
+    /// The NFC form of the bytes can be up to 3x as long as the original bytes, so the result
+    /// is allowed to move an inline buffer to the heap.
     @inlinable
     mutating func _uncheckedAssumingValidUTF8_ensureNFC() {
+        let isAlreadyNFC = self.withSpan { NFCNormalization.quickCheck($0) }
+        if isAlreadyNFC {
+            return
+        }
+
         switch consume self {
         case .inline(var elements):
-            elements._uncheckedAssumingValidUTF8_ensureNFC()
-            self = .inline(elements)
-        case .heap(var array):
-            array._uncheckedAssumingValidUTF8_ensureNFC()
-            self = .heap(array)
+            let array = elements.withSpan { span in
+                NFCNormalization.withNFCNormalized(span) { normalizedSpan in
+                    var array = UniqueArray<UInt8>(minimumCapacity: normalizedSpan.count)
+                    array.append(copying: normalizedSpan)
+                    return array
+                }
+            }
+            if array.count <= InlineElements.maximumCapacity {
+                elements.removeAll()
+                elements.edit { output in
+                    output.swift_idna_append(copying: array.span)
+                }
+                self = .inline(elements)
+            } else {
+                self = .heap(array)
+            }
+        case .heap(let array):
+            let newArray = NFCNormalization.withNFCNormalized(array.span) { normalizedSpan in
+                var newArray = UniqueArray<UInt8>(minimumCapacity: normalizedSpan.count)
+                newArray.append(copying: normalizedSpan)
+                return newArray
+            }
+            self = .heap(newArray)
         }
     }
 }
@@ -328,16 +354,10 @@ extension TinyBuffer {
             self.count == 0
         }
 
-        /// Whether this buffer contains only ASCII bytes.
-        @inlinable
-        var isASCII: Bool {
-            self.withSpan { $0.isASCII }
-        }
-
         /// Gives access to the underlying buffer as a `Span<UInt8>`.
         @_transparent
         @inlinable
-        func withSpan<T>(_ body: (Span<UInt8>) throws -> T) rethrows -> T {
+        func withSpan<T: ~Copyable>(_ body: (Span<UInt8>) throws -> T) rethrows -> T {
             let range = unsafe Range<Int>(uncheckedBounds: (0, self.count))
             let initialized = unsafe UnsafeBufferPointer(self.buffer)
             let span = unsafe initialized.span.extracting(unchecked: range)
@@ -404,21 +424,6 @@ extension TinyBuffer {
             _ = unsafe target.initialize(fromContentsOf: utf8View)
 
             self.count = newCount
-        }
-
-        /// Ensures the buffer contains only valid UTF-8 and NFC-normalized bytes.
-        @inlinable
-        mutating func _uncheckedAssumingValidUTF8_ensureNFC() {
-            if self.isEmpty || self.isASCII { return }
-
-            let string = String(copying: self)
-
-            self.removeAll()
-            self.edit { output in
-                string._withNFCCodeUnits { utf8Byte in
-                    output.append(utf8Byte)
-                }
-            }
         }
     }
 }
