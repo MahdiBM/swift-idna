@@ -176,6 +176,10 @@ extension IDNA {
         }
     }
 
+    /// Main `Processing` IDNA implementation.
+    /// https://www.unicode.org/reports/tr46/#Processing
+    ///
+    /// Excluding step 1 (Map).
     @inlinable
     @inline(__always)
     func _mainProcessing(
@@ -256,30 +260,32 @@ extension IDNA {
                 )
                 /// Every byte that equals `.` (0x2E) becomes 0, every other byte becomes non-zero.
                 let dots = word ^ 0x2E2E_2E2E_2E2E_2E2E
-                /// Subtracting `1` from each byte underflows only the zero bytes into the neighboring high bit.
-                /// It also flips the high bit of any non-zero byte in `0x01 ... 0x80`.
-                let underflowed = dots &- 0x0101_0101_0101_0101
-                /// Discard the bytes that were not zero to begin with. `~dots` has a set high bit
-                /// only where `dots` did not, that is, only in bytes that were `0x00 ... 0x7F`.
-                let onlyZeroBytes = underflowed & ~dots
-                /// Keep just the high bit of each byte, so every `.` is left as a single `0x80` marker.
-                var mask = onlyZeroBytes & 0x8080_8080_8080_8080
+                /// Adding `0x7F` to the low 7 bits of each byte sets that byte's high bit whenever
+                /// those 7 bits are non-zero. It cannot carry across bytes, as `0x7F &+ 0x7F` stays
+                /// below `0x100`, so unlike a `&-` this never contaminates a neighboring byte.
+                let low7BitsRaised = (dots & 0x7F7F_7F7F_7F7F_7F7F) &+ 0x7F7F_7F7F_7F7F_7F7F
+                /// Fold the original high bit back in, so each byte's high bit is set exactly when
+                /// the byte was non-zero, that is, when it was not a `.`.
+                let nonZeroBytes = low7BitsRaised | dots
+                /// Invert and keep just the high bits, leaving every `.` as a single `0x80` marker.
+                let mask = ~nonZeroBytes & 0x8080_8080_8080_8080
 
-                /// `mask` is zero for the common case of a chunk with no `.`, so this whole
-                /// loop is skipped and the current label just keeps growing.
-                while mask != 0 {
-                    /// The lowest set bit sits in the byte of the first remaining `.`; dividing
-                    /// its bit position by 8 turns it back into a byte offset.
-                    let dotIndex = idx &+ (mask.trailingZeroBitCount &>> 3)
-                    /// The label ends right before this `.`, so record its length.
-                    maxLabelLength = max(maxLabelLength, dotIndex &- startIndex)
-                    /// The next label starts right after this `.`.
-                    startIndex = dotIndex &+ 1
-                    /// Clear the lowest set bit and move on to the next `.` in this chunk.
-                    mask &= mask &- 1
+                /// No `.` in these eight bytes, the common case, so extend the current label by
+                /// skipping the whole chunk.
+                if mask == 0 {
+                    idx &+= 8
+                    continue
                 }
 
-                idx &+= 8
+                /// The lowest set bit marks the first `.` in the chunk; dividing its bit position
+                /// by 8 turns it back into a byte offset.
+                let dotIndex = idx &+ (mask.trailingZeroBitCount &>> 3)
+                /// The label ends right before this `.`, so record its length.
+                maxLabelLength = max(maxLabelLength, dotIndex &- startIndex)
+                /// The next label starts right after this `.`, which is also where the next word
+                /// load resumes. Any later `.` in this chunk is found by that reload instead.
+                startIndex = dotIndex &+ 1
+                idx = startIndex
             }
 
             /// Measure the remaining fewer-than-8 bytes one at a time.

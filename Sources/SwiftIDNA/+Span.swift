@@ -38,6 +38,7 @@ extension Span<UInt8> {
         /// Did not start with “xn--”, check the rest of the labels
 
         return self.containsAnyIDNADomainNameMarkerLabelPrefix { idxOfX in
+            /// Count behind the "x" in a "xn--"
             let countBehindX = idxOfX
 
             /// See if there is a label separator before this "xn--"

@@ -24,8 +24,18 @@ extension IDNA {
         // 1.
         let result = TinyBuffer.withInlineAllocation { convertedBytes -> ConversionResult in
             TinyBuffer.withInlineAllocation { processedBytes -> ConversionResult in
-                self.mainProcessing(
+
+                /// Main `Processing` IDNA implementation.
+                /// https://www.unicode.org/reports/tr46/#Processing
+                /// 1. Map
+                self.mapToIDNAMappings_Scalar(
                     span: span,
+                    into: &convertedBytes,
+                    errors: &errors
+                )
+
+                /// Notice no `span` (direct user input) is passed to this function.
+                self._mainProcessing(
                     reuseBuffer: &convertedBytes,
                     output: &processedBytes,
                     errors: &errors
@@ -72,8 +82,16 @@ extension IDNA {
         let result = TinyBuffer.withInlineAllocation { reuseBuffer -> ConversionResult in
             TinyBuffer.withInlineAllocation { utf8Bytes -> ConversionResult in
 
-                self.mainProcessing(
+                /// Main `Processing` IDNA implementation.
+                /// https://www.unicode.org/reports/tr46/#Processing
+                /// 1. Map
+                self.mapToIDNAMappings_SIMD(
                     span: span,
+                    into: &reuseBuffer,
+                    errors: &errors
+                )
+
+                self._mainProcessing(
                     reuseBuffer: &reuseBuffer,
                     output: &utf8Bytes,
                     errors: &errors
@@ -91,33 +109,71 @@ extension IDNA {
         return result
     }
 
-    /// Main `Processing` IDNA implementation.
-    /// https://www.unicode.org/reports/tr46/#Processing
     @inlinable
     @inline(__always)
-    func mainProcessing(
+    func mapToIDNAMappings_Scalar(
         span: Span<UInt8>,
-        reuseBuffer newBytes: inout TinyBuffer,
-        output newerBytes: inout TinyBuffer,
+        into newBytes: inout TinyBuffer,
         errors: inout MappingErrors
     ) {
-        /// 1. Map
-        self.mapToIDNAMappings(
-            span: span,
-            into: &newBytes,
-            errors: &errors
-        )
+        var requiredCapacity = 0
 
-        self._mainProcessing(
-            reuseBuffer: &newBytes,
-            output: &newerBytes,
-            errors: &errors
-        )
+        var unicodeScalarsIterator = UnicodeScalarIterator()
+
+        while let (uncheckedScalar, range) = unicodeScalarsIterator.nextWithRange(in: span) {
+            guard let scalar = Unicode.Scalar(uncheckedScalar) else {
+                errors.append(
+                    .labelContainsInvalidUnicode(
+                        uncheckedScalar,
+                        label: String(span: span)
+                    )
+                )
+                continue
+            }
+
+            let mapping = IDNAMapping.for(scalar: scalar)
+            switch mapping.tag {
+            case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
+                requiredCapacity &+= range.count
+            case .mapped:
+                requiredCapacity &+= mapping.mappedScalars.utf8BytesSpan.count
+            case .ignored:
+                ()
+            }
+        }
+
+        /// I'm expecting this to be empty at this point, nothing special.
+        /// Tests will immediately crash if this is not the case.
+        assert(newBytes.isEmpty)
+
+        unicodeScalarsIterator = UnicodeScalarIterator()
+
+        /// Reserve the exact required capacity up front so we can skip further capacity checks
+        /// because we're guaranteed to have enough capacity.
+        newBytes.append(extraRequiredCapacity: requiredCapacity) { output in
+            while let (uncheckedScalar, range) = unicodeScalarsIterator.nextWithRange(in: span) {
+                guard let scalar = Unicode.Scalar(uncheckedScalar) else {
+                    /// Error already appended
+                    continue
+                }
+
+                let mapping = IDNAMapping.for(scalar: scalar)
+                switch mapping.tag {
+                case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
+                    let scalarBytesSpan = unsafe span.extracting(unchecked: range)
+                    output.swift_idna_append(copying: scalarBytesSpan)
+                case .mapped:
+                    output.swift_idna_append(copying: mapping.mappedScalars.utf8BytesSpan)
+                case .ignored:
+                    ()
+                }
+            }
+        }
     }
 
     @inlinable
     @inline(__always)
-    func mapToIDNAMappings(
+    func mapToIDNAMappings_SIMD(
         span: Span<UInt8>,
         into newBytes: inout TinyBuffer,
         errors: inout MappingErrors
