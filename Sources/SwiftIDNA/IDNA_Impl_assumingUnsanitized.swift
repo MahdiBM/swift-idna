@@ -220,19 +220,8 @@ extension IDNA {
                     i &+= scalarUTF8Length
                 }
 
-                let approxRequiredCapacity = IDNA.approximateCapacity(
-                    totalCount: count,
-                    originalFormCount: windowEnd,
-                    postProcessCount: newBytes.count &+ requiredCapacity
-                )
-                assert(approxRequiredCapacity >= requiredCapacity)
-                let approxToReserve = approxRequiredCapacity &- newBytes.count
-                let extraToReserve =
-                    requiredCapacity <= TinyBuffer.InlineElements.maximumCapacity
-                    ? requiredCapacity : approxToReserve
-
                 i = startIdx
-                newBytes.append(extraRequiredCapacity: extraToReserve) { output in
+                newBytes.append(extraRequiredCapacity: requiredCapacity) { output in
                     while i < windowEnd {
                         let idx = i &- startIdx
                         let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
@@ -263,37 +252,6 @@ extension IDNA {
                 startIdx = i
             }
         }
-    }
-
-    /// Generic over the Integer type, so we can test via Int8 in tests to easily check boundaries.
-    ///
-    /// ~= (totalCount * postProcessCount) / originalFormCount
-    @inlinable
-    @_specialize(where IntegerType == Int)
-    package static func approximateCapacity<IntegerType: BinaryInteger & FixedWidthInteger>(
-        totalCount: IntegerType,
-        originalFormCount: IntegerType,
-        postProcessCount: IntegerType
-    ) -> IntegerType {
-        assert(totalCount >= originalFormCount && originalFormCount != .zero)
-
-        let originalFormCountLeadingZeroBitCount = originalFormCount.leadingZeroBitCount
-        let totalCountLeadingZeroBitCount = totalCount.leadingZeroBitCount
-        let diff = originalFormCountLeadingZeroBitCount &- totalCountLeadingZeroBitCount
-
-        let _approx = postProcessCount.multipliedReportingOverflow(by: 1 &<< diff)
-        let approx = _approx.overflow ? .max : _approx.partialValue
-
-        let _doubled = postProcessCount.multipliedReportingOverflow(by: 2)
-        let doubled = _doubled.overflow ? .max : _doubled.partialValue
-
-        let isEqual = totalCount == originalFormCount
-        let isSameOrderOfMagnitude =
-            totalCountLeadingZeroBitCount == originalFormCountLeadingZeroBitCount
-
-        let finalCount = isEqual ? postProcessCount : (isSameOrderOfMagnitude ? doubled : approx)
-
-        return finalCount
     }
 
     /// Converts the given span to lowercase ASCII.
