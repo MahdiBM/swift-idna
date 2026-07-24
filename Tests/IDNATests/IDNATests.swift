@@ -19,6 +19,38 @@ struct IDNATests {
         #expect(array.capacity == TINY_ARRAY__UNIQUE_ARRAY_ALLOCATION_THRESHOLD)
     }
 
+    @Test func `approximateCapacity is sane`() {
+        let arguments = (1...Int8.max).flatMap { totalCount in
+            (1...Int8.max).flatMap { originalFormCount in
+                (1...Int8.max).compactMap { postProcessCount in
+                    if originalFormCount <= totalCount {
+                        return (totalCount, originalFormCount, postProcessCount)
+                    } else {
+                        return nil
+                    }
+                }
+            }
+        }
+
+        for (totalCount, originalFormCount, postProcessCount) in arguments {
+            let actual = IDNA.approximateCapacity(
+                totalCount: totalCount,
+                originalFormCount: originalFormCount,
+                postProcessCount: postProcessCount
+            )
+            var basicExpectation: Bool = false
+            if totalCount == originalFormCount {
+                basicExpectation = actual == postProcessCount
+            } else {
+                basicExpectation = actual > postProcessCount || actual == .max
+            }
+            #expect(
+                basicExpectation && actual.signum() == 1 && actual >= postProcessCount,
+                "totalCount: \(totalCount), originalFormCount: \(originalFormCount), postProcessCount: \(postProcessCount), actual: \(actual)"
+            )
+        }
+    }
+
     static func makeBytesFunction(
         source: [UInt8],
         idnaFunction:
