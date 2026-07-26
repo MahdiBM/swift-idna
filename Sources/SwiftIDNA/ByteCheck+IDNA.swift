@@ -19,7 +19,7 @@ extension IDNA {
     @inlinable
     static func performByteCheck(on span: Span<UInt8>) -> CharacterCheckResult {
         var isASCII_Number: UInt8 = 0
-        var forSureContainsLowercasedOnly_Number: UInt8 = 0
+        var forSureContainsLowercasedOnly_Number: UInt8 = 0xFF
         /// This loop is usually auto-vectorized into SIMD instructions by LLVM.
         for idx in span.indices {
             let byte = span[idx]
