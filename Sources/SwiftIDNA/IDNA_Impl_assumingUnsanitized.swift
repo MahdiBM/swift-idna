@@ -122,17 +122,9 @@ extension IDNA {
         var unicodeScalarsIterator = UnicodeScalarIterator()
 
         while let (uncheckedScalar, range) = unicodeScalarsIterator.nextWithRange(in: span) {
-            guard let scalar = Unicode.Scalar(uncheckedScalar) else {
-                errors.append(
-                    .labelContainsInvalidUnicode(
-                        uncheckedScalar,
-                        label: String(span: span)
-                    )
-                )
-                continue
-            }
-
-            let mapping = IDNAMapping.for(scalar: scalar)
+            /// Invalid scalar values resolve to `ignored`, so they contribute no capacity.
+            /// The error for them is appended in the second pass below.
+            let mapping = IDNAMapping.for(uncheckedScalar: uncheckedScalar)
             let isMapped = mapping.tag == .mapped
             let isIgnored = mapping.tag == .ignored
             let mappedScalarsCount = mapping.mappedScalars.utf8BytesSpan.count
@@ -152,7 +144,12 @@ extension IDNA {
         newBytes.append(extraRequiredCapacity: requiredCapacity) { output in
             while let (uncheckedScalar, range) = unicodeScalarsIterator.nextWithRange(in: span) {
                 guard let scalar = Unicode.Scalar(uncheckedScalar) else {
-                    /// Error already appended
+                    errors.append(
+                        .labelContainsInvalidUnicode(
+                            uncheckedScalar,
+                            label: String(span: span)
+                        )
+                    )
                     continue
                 }
 
@@ -184,27 +181,19 @@ extension IDNA {
             /// Process windows of size `SIMDUnicodeScalarDecoder.windowSize`, one by one.
             var startIdx = 0
             while startIdx < count {
-                let windowEnd = decoder.decodeNextWindow(of: span, startIdx: startIdx)
+                decoder.decodeNextWindow(of: span, startIdx: startIdx)
+                let scalarCount = decoder.scalarCount
 
                 var requiredCapacity = 0
-                var i = startIdx
-                while i < windowEnd {
-                    let idx = i &- startIdx
-                    let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
-                    let uncheckedScalar = unsafe decoder.uncheckedScalarValues[unchecked: idx]
+                var scalarIdx = 0
+                while scalarIdx < scalarCount {
+                    let offset = decoder.scalarStartOffset(at: scalarIdx)
+                    let scalarUTF8Length = decoder.scalarUTF8Length(at: scalarIdx)
+                    let uncheckedScalar = unsafe decoder.uncheckedScalarValues[unchecked: offset]
 
-                    guard let scalar = Unicode.Scalar(uncheckedScalar) else {
-                        errors.append(
-                            .labelContainsInvalidUnicode(
-                                uncheckedScalar,
-                                label: String(span: span)
-                            )
-                        )
-                        i &+= scalarUTF8Length
-                        continue
-                    }
-
-                    let mapping = IDNAMapping.for(scalar: scalar)
+                    /// Invalid scalar values resolve to `ignored`, so they contribute no capacity.
+                    /// The error for them is appended in the second pass below.
+                    let mapping = IDNAMapping.for(uncheckedScalar: uncheckedScalar)
                     let isMapped = mapping.tag == .mapped
                     let isIgnored = mapping.tag == .ignored
                     let mappedScalarsCount = mapping.mappedScalars.utf8BytesSpan.count
@@ -212,26 +201,35 @@ extension IDNA {
                     let toAdd = isMapped ? mappedScalarsCount : _toAdd
                     requiredCapacity &+= toAdd
 
-                    i &+= scalarUTF8Length
+                    scalarIdx &+= 1
                 }
 
-                i = startIdx
+                scalarIdx = 0
                 newBytes.append(extraRequiredCapacity: requiredCapacity) { output in
-                    while i < windowEnd {
-                        let idx = i &- startIdx
-                        let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
-                        let uncheckedScalar = unsafe decoder.uncheckedScalarValues[unchecked: idx]
+                    while scalarIdx < scalarCount {
+                        let offset = decoder.scalarStartOffset(at: scalarIdx)
+                        let scalarUTF8Length = decoder.scalarUTF8Length(at: scalarIdx)
+                        let uncheckedScalar = unsafe decoder.uncheckedScalarValues[
+                            unchecked: offset
+                        ]
+                        scalarIdx &+= 1
+
                         guard let scalar = Unicode.Scalar(uncheckedScalar) else {
-                            /// Error already appended
-                            i &+= scalarUTF8Length
-                            return
+                            errors.append(
+                                .labelContainsInvalidUnicode(
+                                    uncheckedScalar,
+                                    label: String(span: span)
+                                )
+                            )
+                            continue
                         }
 
                         let mapping = IDNAMapping.for(scalar: scalar)
                         let isMapped = mapping.tag == .mapped
                         let isIgnored = mapping.tag == .ignored
+                        let scalarStartIdx = startIdx &+ offset
                         let scalarRange = unsafe Range<Int>(
-                            uncheckedBounds: (i, i &+ scalarUTF8Length)
+                            uncheckedBounds: (scalarStartIdx, scalarStartIdx &+ scalarUTF8Length)
                         )
                         let scalarBytesSpan = unsafe span.extracting(unchecked: scalarRange)
                         let mappedScalarsSpan = mapping.mappedScalars.utf8BytesSpan
@@ -239,11 +237,9 @@ extension IDNA {
                         let _span = isIgnored ? emptySpan : scalarBytesSpan
                         let span = isMapped ? mappedScalarsSpan : _span
                         output.swift_idna_append(copying: span)
-
-                        i &+= scalarUTF8Length
                     }
                 }
-                startIdx = i
+                startIdx &+= decoder.windowEndOffset()
             }
         }
     }

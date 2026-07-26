@@ -23,9 +23,20 @@ struct IDNAMapping {
     let mappedScalars: IDNAUnicodeScalarView
 
     @inlinable
-    init(tag: Tag, mappedScalars: IDNAUnicodeScalarView) {
-        self.tag = tag
-        self.mappedScalars = mappedScalars
+    init(packedValue: UInt16) {
+        /// This is exhaustively tested, so `unsafelyUnwrapped` is safe.
+        self.tag = unsafe Tag(rawValue: packedValue >> 13).unsafelyUnwrapped
+        /// If there is no payload (!mapped && !deviation) then `sliceIndex` always amounts to 0.
+        let sliceIndex = UInt32(packedValue & 0x1FFF)
+        let slice = cswift_idna_mapped_slice(sliceIndex)
+        let payloadPtr = unsafe cswift_idna_mapped_utf8_at(slice >> 8)
+        let payloadCount = Int(slice & 0xFF)
+        self.mappedScalars = unsafe IDNAUnicodeScalarView(
+            staticPointer: UnsafeBufferPointer(
+                start: payloadPtr,
+                count: payloadCount
+            )
+        )
     }
 }
 
@@ -36,20 +47,19 @@ extension IDNAMapping {
     /// - Returns: The corresponding `IDNAMapping` value
     @inlinable
     static func `for`(scalar: Unicode.Scalar) -> IDNAMapping {
-        let packedValue = cswift_idna_packed_value(scalar.value)
-        /// This is exhaustively tested, so `unsafelyUnwrapped` is safe.
-        let tag = unsafe Tag(rawValue: packedValue >> 13).unsafelyUnwrapped
-        /// If there is no payload (!mapped && !deviation) then `sliceIndex` always amounts to 0.
-        let sliceIndex = UInt32(packedValue & 0x1FFF)
-        let slice = cswift_idna_mapped_slice(sliceIndex)
-        let payloadPtr = unsafe cswift_idna_mapped_utf8_at(slice >> 8)
-        let payloadCount = Int(slice & 0xFF)
-        let payload = unsafe IDNAUnicodeScalarView(
-            staticPointer: UnsafeBufferPointer(
-                start: payloadPtr,
-                count: payloadCount
-            )
-        )
-        return IDNAMapping(tag: tag, mappedScalars: payload)
+        IDNAMapping(packedValue: cswift_idna_packed_value(scalar.value))
+    }
+
+    /// Look up IDNA mapping for a Unicode scalar value which is not known to be valid.
+    /// Values which are not valid Unicode scalar values, which is to say surrogates and
+    /// values above `0x10FFFF`, resolve to the `ignored` mapping without any branching.
+    /// - Parameter uncheckedScalar: The unchecked Unicode scalar value to look up
+    /// - Returns: The corresponding `IDNAMapping` value
+    @inlinable
+    static func `for`(uncheckedScalar: UInt32) -> IDNAMapping {
+        /// Keeps the trie lookup in bounds for any `UInt32`. A no-op for valid scalar values.
+        let inBoundsScalar = Swift.min(uncheckedScalar, 0x10_FFFF)
+        let packedValue = cswift_idna_packed_value(inBoundsScalar)
+        return IDNAMapping(packedValue: packedValue)
     }
 }

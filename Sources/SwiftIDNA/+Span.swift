@@ -153,23 +153,23 @@ extension Span<UInt8> {
             /// Process windows of size `SIMDUnicodeScalarDecoder.windowSize`, one by one.
             var startIdx = 0
             outerLoop: while startIdx < count {
-                let windowEnd = decoder.decodeNextWindow(of: self, startIdx: startIdx)
+                decoder.decodeNextWindow(of: self, startIdx: startIdx)
+                let scalarCount = decoder.scalarCount
 
-                var i = startIdx
-                while i < windowEnd {
-                    let idx = i &- startIdx
-                    let scalarUTF8Length = Int(unsafe decoder.scalarUTF8Lengths[unchecked: idx])
-                    let uncheckedScalar = unsafe decoder.uncheckedScalarValues[unchecked: idx]
+                var scalarIdx = 0
+                while scalarIdx < scalarCount {
+                    let offset = decoder.scalarStartOffset(at: scalarIdx)
+                    let uncheckedScalar = unsafe decoder.uncheckedScalarValues[unchecked: offset]
 
                     if Unicode.Scalar(uncheckedScalar) == nil {
                         seenInvalidUTF8 = true
                         break outerLoop
                     }
 
-                    i &+= scalarUTF8Length
+                    scalarIdx &+= 1
                 }
 
-                startIdx = i
+                startIdx &+= decoder.windowEndOffset()
             }
         }
 
