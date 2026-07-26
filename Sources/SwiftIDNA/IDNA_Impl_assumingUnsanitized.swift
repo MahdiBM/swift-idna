@@ -133,14 +133,12 @@ extension IDNA {
             }
 
             let mapping = IDNAMapping.for(scalar: scalar)
-            switch mapping.tag {
-            case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
-                requiredCapacity &+= range.count
-            case .mapped:
-                requiredCapacity &+= mapping.mappedScalars.utf8BytesSpan.count
-            case .ignored:
-                ()
-            }
+            let isMapped = mapping.tag == .mapped
+            let isIgnored = mapping.tag == .ignored
+            let mappedScalarsCount = mapping.mappedScalars.utf8BytesSpan.count
+            let _toAdd = isIgnored ? 0 : range.count
+            let toAdd = isMapped ? mappedScalarsCount : _toAdd
+            requiredCapacity &+= toAdd
         }
 
         /// I'm expecting this to be empty at this point, nothing special.
@@ -159,15 +157,14 @@ extension IDNA {
                 }
 
                 let mapping = IDNAMapping.for(scalar: scalar)
-                switch mapping.tag {
-                case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
-                    let scalarBytesSpan = unsafe span.extracting(unchecked: range)
-                    output.swift_idna_append(copying: scalarBytesSpan)
-                case .mapped:
-                    output.swift_idna_append(copying: mapping.mappedScalars.utf8BytesSpan)
-                case .ignored:
-                    ()
-                }
+                let isMapped = mapping.tag == .mapped
+                let isIgnored = mapping.tag == .ignored
+                let scalarBytesSpan = unsafe span.extracting(unchecked: range)
+                let mappedScalarsSpan = mapping.mappedScalars.utf8BytesSpan
+                let emptySpan = Span<UInt8>()
+                let _span = isIgnored ? emptySpan : scalarBytesSpan
+                let span = isMapped ? mappedScalarsSpan : _span
+                output.swift_idna_append(copying: span)
             }
         }
     }
@@ -208,14 +205,12 @@ extension IDNA {
                     }
 
                     let mapping = IDNAMapping.for(scalar: scalar)
-                    switch mapping.tag {
-                    case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
-                        requiredCapacity &+= scalarUTF8Length
-                    case .mapped:
-                        requiredCapacity &+= mapping.mappedScalars.utf8BytesSpan.count
-                    case .ignored:
-                        ()
-                    }
+                    let isMapped = mapping.tag == .mapped
+                    let isIgnored = mapping.tag == .ignored
+                    let mappedScalarsCount = mapping.mappedScalars.utf8BytesSpan.count
+                    let _toAdd = isIgnored ? 0 : scalarUTF8Length
+                    let toAdd = isMapped ? mappedScalarsCount : _toAdd
+                    requiredCapacity &+= toAdd
 
                     i &+= scalarUTF8Length
                 }
@@ -233,18 +228,17 @@ extension IDNA {
                         }
 
                         let mapping = IDNAMapping.for(scalar: scalar)
-                        switch mapping.tag {
-                        case .validNone, .validNV8, .validXV8, .disallowed, .deviation:
-                            let scalarRange = unsafe Range<Int>(
-                                uncheckedBounds: (i, i &+ scalarUTF8Length)
-                            )
-                            let scalarBytesSpan = unsafe span.extracting(unchecked: scalarRange)
-                            output.swift_idna_append(copying: scalarBytesSpan)
-                        case .mapped:
-                            output.swift_idna_append(copying: mapping.mappedScalars.utf8BytesSpan)
-                        case .ignored:
-                            ()
-                        }
+                        let isMapped = mapping.tag == .mapped
+                        let isIgnored = mapping.tag == .ignored
+                        let scalarRange = unsafe Range<Int>(
+                            uncheckedBounds: (i, i &+ scalarUTF8Length)
+                        )
+                        let scalarBytesSpan = unsafe span.extracting(unchecked: scalarRange)
+                        let mappedScalarsSpan = mapping.mappedScalars.utf8BytesSpan
+                        let emptySpan = Span<UInt8>()
+                        let _span = isIgnored ? emptySpan : scalarBytesSpan
+                        let span = isMapped ? mappedScalarsSpan : _span
+                        output.swift_idna_append(copying: span)
 
                         i &+= scalarUTF8Length
                     }
