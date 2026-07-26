@@ -185,8 +185,8 @@ extension IDNA {
                 let scalarCount = decoder.scalarCount
 
                 var requiredCapacity = 0
-                var scalarIdx = 0
-                while scalarIdx < scalarCount {
+                let range = unsafe Range<Int>(uncheckedBounds: (0, scalarCount))
+                for scalarIdx in range {
                     let offset = decoder.scalarStartOffset(at: scalarIdx)
                     let scalarUTF8Length = decoder.scalarUTF8Length(at: scalarIdx)
                     let uncheckedScalar = unsafe decoder.uncheckedScalarValues[unchecked: offset]
@@ -200,19 +200,15 @@ extension IDNA {
                     let _toAdd = isIgnored ? 0 : scalarUTF8Length
                     let toAdd = isMapped ? mappedScalarsCount : _toAdd
                     requiredCapacity &+= toAdd
-
-                    scalarIdx &+= 1
                 }
 
-                scalarIdx = 0
                 newBytes.append(extraRequiredCapacity: requiredCapacity) { output in
-                    while scalarIdx < scalarCount {
+                    for scalarIdx in range {
                         let offset = decoder.scalarStartOffset(at: scalarIdx)
                         let scalarUTF8Length = decoder.scalarUTF8Length(at: scalarIdx)
                         let uncheckedScalar = unsafe decoder.uncheckedScalarValues[
                             unchecked: offset
                         ]
-                        scalarIdx &+= 1
 
                         guard let scalar = Unicode.Scalar(uncheckedScalar) else {
                             errors.append(

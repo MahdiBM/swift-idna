@@ -3,10 +3,10 @@
 /// Only pass the same span to any single decode/walk sequence; tests will fail otherwise.
 @available(SwiftStdlib 5.1, *)
 @usableFromInline
-struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
+package struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Bytes decoded per window. Matches the natural byte-vector width.
     @usableFromInline
-    static var windowSize: Int { 16 }
+    package static var windowSize: Int { 16 }
     /// Extra bytes for speculative decoding.
     @usableFromInline
     static var tempBytesSize: Int { Self.windowSize &+ 3 }
@@ -22,21 +22,21 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Initialized to zeros via `withTemporaryDecoder(_:)`.
     /// Of length `Self.tempBytesSize`.
     @usableFromInline
-    var tempBytes: MutableSpan<UInt8>
+    package var tempBytes: MutableSpan<UInt8>
     /// Decoded UTF-8 byte length (1...4) per window position, offset by `Self.lengthsPadding`.
     /// Of length `Self.paddedScalarUTF8LengthsSize`.
     @usableFromInline
-    var paddedScalarUTF8Lengths: MutableSpan<UInt8>
+    package var paddedScalarUTF8Lengths: MutableSpan<UInt8>
     /// Decoded scalar value per window position.
     /// Of length `Self.windowSize`.
     @usableFromInline
-    var uncheckedScalarValues: MutableSpan<UInt32>
+    package var uncheckedScalarValues: MutableSpan<UInt32>
     /// Densely packed window-relative scalar start offsets, with an end sentinel at `scalarCount`.
     /// Of length `Self.scalarStartOffsetsSize`.
     @usableFromInline
-    var scalarStartOffsets: MutableSpan<UInt8>
+    package var scalarStartOffsets: MutableSpan<UInt8>
     @usableFromInline
-    var scalarCount: Int
+    package var scalarCount: Int
 
     @inlinable
     @_lifetime(
@@ -61,7 +61,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Runs `body` with a decoder backed by temporary stack allocations.
     @inlinable
     @inline(__always)
-    static func withTemporaryDecoder<R: ~Copyable, Failure: Error>(
+    package static func withTemporaryDecoder<R: ~Copyable, Failure: Error>(
         _ body: (inout SIMDUnicodeScalarDecoder) throws(Failure) -> R
     ) throws(Failure) -> R {
         try withUnsafeTemporaryAllocation(
@@ -141,7 +141,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Fills `scalarStartOffsets` by hopping through the decoded lengths.
     @inlinable
     @inline(__always)
-    mutating func chainScalarStarts(windowLength: Int) {
+    package mutating func chainScalarStarts(windowLength: Int) {
         var count = 0
         var idx = 0
         while idx < windowLength {
@@ -207,7 +207,7 @@ struct SIMDUnicodeScalarDecoder: ~Copyable, ~Escapable {
     /// Decodes the window starting at `startIdx`, populating `scalarStartOffsets` and `scalarCount`.
     @inlinable
     @inline(__always)
-    mutating func decodeNextWindow(
+    package mutating func decodeNextWindow(
         of bytes: Span<UInt8>,
         startIdx: Int
     ) {
