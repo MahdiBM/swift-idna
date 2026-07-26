@@ -50,7 +50,7 @@ package struct NFCNormalization {
     @inlinable
     package static func quickCheck(_ span: Span<UInt8>) -> Bool {
         var maxByte: UInt8 = 0
-        /// This loop is usually auto-vectorized into SIMD instructions by LLVM.
+        /// This loop is auto-vectorized into SIMD instructions by LLVM.
         for idx in span.indices {
             maxByte = max(maxByte, span[idx])
         }
@@ -211,7 +211,9 @@ package struct NFCNormalization {
             let ccc = packedScalar &>> 21
             let scalar = packedScalar & 0x1F_FFFF
 
-            if starterIndex >= 0, previousCCC < ccc || previousCCC == 0 {
+            if starterIndex >= 0,
+                previousCCC < ccc || previousCCC == 0
+            {
                 let starter = unsafe scalars[starterIndex] & 0x1F_FFFF
                 if let composite = Self.composePair(starter, scalar) {
                     unsafe scalars[starterIndex] = composite
@@ -220,12 +222,8 @@ package struct NFCNormalization {
             }
 
             unsafe scalars[writeIndex] = packedScalar
-            if ccc == 0 {
-                starterIndex = writeIndex
-                previousCCC = 0
-            } else {
-                previousCCC = ccc
-            }
+            starterIndex = ccc == 0 ? writeIndex : starterIndex
+            previousCCC = ccc
             writeIndex &+= 1
         }
         count = writeIndex
@@ -320,8 +318,8 @@ package struct NFCNormalization {
 
             let range = unsafe Range<Int>(uncheckedBounds: (0, utf8Count))
             let initialized = UnsafeBufferPointer(utf8Allocation)
-            let outputSpan = unsafe initialized.span.extracting(unchecked: range)
-            return try body(outputSpan)
+            let span = unsafe initialized.span.extracting(unchecked: range)
+            return try body(span)
         }
     }
 }
