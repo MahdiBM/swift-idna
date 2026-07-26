@@ -50,16 +50,19 @@ extension IDNAMapping {
         IDNAMapping(packedValue: cswift_idna_packed_value(scalar.value))
     }
 
-    /// Look up IDNA mapping for a Unicode scalar value which is not known to be valid.
-    /// Values which are not valid Unicode scalar values, which is to say surrogates and
-    /// values above `0x10FFFF`, resolve to the `ignored` mapping without any branching.
+    /// Look up IDNA mapping for a Unicode scalar value which is not necessarily known to be valid.
+    /// Values which are not valid Unicode scalars, which is to say surrogates and values above
+    /// `0x10FFFF`, resolve to the `ignored` mapping without any branching.
     /// - Parameter uncheckedScalar: The unchecked Unicode scalar value to look up
     /// - Returns: The corresponding `IDNAMapping` value
     @inlinable
     static func `for`(uncheckedScalar: UInt32) -> IDNAMapping {
-        /// Keeps the trie lookup in bounds for any `UInt32`. A no-op for valid scalar values.
-        let inBoundsScalar = Swift.min(uncheckedScalar, 0x10_FFFF)
-        let packedValue = cswift_idna_packed_value(inBoundsScalar)
+        let isSurrogate = (uncheckedScalar &- 0xD800) &>> 11 == 0
+        let isAboveMaxScalarValue = uncheckedScalar > 0x10_FFFF
+        let isInvalid = isSurrogate || isAboveMaxScalarValue
+        /// if isInvalid, replace with the first "ignored" scalar, which is `0xAD`.
+        let scalar = isInvalid ? 0xAD : uncheckedScalar
+        let packedValue = cswift_idna_packed_value(scalar)
         return IDNAMapping(packedValue: packedValue)
     }
 }

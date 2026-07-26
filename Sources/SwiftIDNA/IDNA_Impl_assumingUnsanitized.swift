@@ -154,13 +154,13 @@ extension IDNA {
                 }
 
                 let mapping = IDNAMapping.for(scalar: scalar)
+                if mapping.tag == .ignored {
+                    continue
+                }
                 let isMapped = mapping.tag == .mapped
-                let isIgnored = mapping.tag == .ignored
                 let scalarBytesSpan = unsafe span.extracting(unchecked: range)
                 let mappedScalarsSpan = mapping.mappedScalars.utf8BytesSpan
-                let emptySpan = Span<UInt8>()
-                let _span = isIgnored ? emptySpan : scalarBytesSpan
-                let span = isMapped ? mappedScalarsSpan : _span
+                let span = isMapped ? mappedScalarsSpan : scalarBytesSpan
                 output.swift_idna_append(copying: span)
             }
         }
@@ -225,17 +225,17 @@ extension IDNA {
                         }
 
                         let mapping = IDNAMapping.for(scalar: scalar)
+                        if mapping.tag == .ignored {
+                            continue
+                        }
                         let isMapped = mapping.tag == .mapped
-                        let isIgnored = mapping.tag == .ignored
                         let scalarStartIdx = startIdx &+ offset
                         let scalarRange = unsafe Range<Int>(
                             uncheckedBounds: (scalarStartIdx, scalarStartIdx &+ scalarUTF8Length)
                         )
                         let scalarBytesSpan = unsafe span.extracting(unchecked: scalarRange)
                         let mappedScalarsSpan = mapping.mappedScalars.utf8BytesSpan
-                        let emptySpan = Span<UInt8>()
-                        let _span = isIgnored ? emptySpan : scalarBytesSpan
-                        let span = isMapped ? mappedScalarsSpan : _span
+                        let span = isMapped ? mappedScalarsSpan : scalarBytesSpan
                         output.swift_idna_append(copying: span)
                     }
                 }
